@@ -1,0 +1,80 @@
+# Python caches
+__pycache__/
+*.py[cod]
+*$py.class
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+.ipynb_checkpoints/
+
+# Virtual environments and local env files
+.venv/
+venv/
+env/
+*.env
+.env*
+
+# Logs and run outputs
+logs/
+*.log
+nohup.out
+wandb/
+runs/
+outputs/
+tmp/
+temp/
+
+# Large datasets and generated assets
+dataset/
+retrieval_assets/
+
+# Model weights and checkpoints
+models/
+checkpoints/
+checkpoint-*/
+**/checkpoint-*/
+*.safetensors
+*.bin
+*.pt
+*.pth
+*.ckpt
+*.onnx
+
+# Common large data formats
+*.jsonl
+*.parquet
+*.csv
+*.tsv
+*.npy
+*.npz
+*.pkl
+*.pickle
+*.arrow
+*.tar
+*.tar.gz
+*.zip
+*.gz
+
+# OS/editor noise
+.DS_Store
+Thumbs.db
+*.swp
+*.swo
+.vscode/
+.idea/
+
+# Keep source, docs, manifests, and small JSON configs trackable.
+!MANIFEST.md
+!next_plan.md
+!600steps.json
+!docs/
+!docs/**
+!src/
+!src/**
+!scripts/
+!scripts/**
+!schemas/
+!schemas/**
+!*.md
+!*.py
+!*.json
