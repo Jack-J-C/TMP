@@ -89,6 +89,12 @@ def parse_args() -> argparse.Namespace:
     p.add_argument("--graph-irrelevant-mix-prob", type=float, default=0.0, help="Train-time probability of replacing some candidates with irrelevant POIs.")
     p.add_argument("--graph-rank-noise-prob", type=float, default=0.0, help="Train-time probability of shuffling candidate ranks/scores.")
     p.add_argument("--graph-noise-loss-weight", type=float, default=0.0, help="Auxiliary weight for 4-way GraphRAG noise-type classification.")
+    p.add_argument(
+        "--raat-mode",
+        choices=["none", "target_mask_2view"],
+        default="none",
+        help="Optional RAAT hardest-selection mode. target_mask_2view uses max CE over clean and target-masked GraphRAG views.",
+    )
     p.add_argument("--max-length", type=int, default=3072)
     p.add_argument("--max-train-samples", type=int, default=None, help="Optional smoke-test limit.")
     p.add_argument("--max-val-samples", type=int, default=None, help="Optional smoke-test limit.")
@@ -102,6 +108,7 @@ def parse_args() -> argparse.Namespace:
     p.add_argument("--eval-batch-size", type=int, default=2)
     p.add_argument("--grad-accum", type=int, default=16)
     p.add_argument("--epochs", type=float, default=1.0)
+    p.add_argument("--max-steps", type=int, default=-1, help="If > 0, override epochs and stop after this many optimizer steps.")
     p.add_argument("--lr", type=float, default=2e-4)
     p.add_argument("--weight-decay", type=float, default=0.0)
     p.add_argument("--warmup-ratio", type=float, default=0.03)
@@ -515,6 +522,7 @@ class POIClassificationDataset(Dataset):
 @dataclass
 class DataCollatorForPOIClassification:
     tokenizer: Any
+    raat_mode: str = "none"
 
     def __call__(self, features: Sequence[Dict[str, Any]]) -> Dict[str, torch.Tensor]:
         labels = torch.tensor([int(x.pop("labels")) for x in features], dtype=torch.long)
@@ -543,6 +551,14 @@ class DataCollatorForPOIClassification:
             batch["graph_candidate_ranks"] = padded_ranks
             batch["graph_candidate_scores"] = padded_scores
             batch["graph_candidate_mask"] = mask
+            if self.raat_mode == "target_mask_2view":
+                raat_mask = mask.clone()
+                raat_labels = labels.view(-1, 1)
+                raat_mask = raat_mask & padded_indices.ne(raat_labels)
+                batch["raat_graph_candidate_indices"] = padded_indices
+                batch["raat_graph_candidate_ranks"] = padded_ranks
+                batch["raat_graph_candidate_scores"] = padded_scores
+                batch["raat_graph_candidate_mask"] = raat_mask
         return batch
 
 
@@ -629,6 +645,7 @@ class LlamaTeamLoRAPOIClassifier(nn.Module):
         graph_prior_mode: str,
         mlp_logit_scale: float,
         graph_noise_loss_weight: float,
+        raat_mode: str,
     ):
         super().__init__()
         self.base_model = base_model
@@ -637,6 +654,7 @@ class LlamaTeamLoRAPOIClassifier(nn.Module):
         self.graph_prior_mode = graph_prior_mode
         self.mlp_logit_scale = float(mlp_logit_scale)
         self.graph_noise_loss_weight = float(graph_noise_loss_weight)
+        self.raat_mode = raat_mode
         classifier_input_size = hidden_size * 2 if pooling == "last_mean" else hidden_size
         self.classifier = nn.Sequential(
             nn.Linear(classifier_input_size, hidden_size),
@@ -673,6 +691,10 @@ class LlamaTeamLoRAPOIClassifier(nn.Module):
         graph_candidate_ranks: torch.Tensor | None = None,
         graph_candidate_scores: torch.Tensor | None = None,
         graph_candidate_mask: torch.Tensor | None = None,
+        raat_graph_candidate_indices: torch.Tensor | None = None,
+        raat_graph_candidate_ranks: torch.Tensor | None = None,
+        raat_graph_candidate_scores: torch.Tensor | None = None,
+        raat_graph_candidate_mask: torch.Tensor | None = None,
         graph_noise_labels: torch.Tensor | None = None,
         **_: Any,
     ):
@@ -696,7 +718,23 @@ class LlamaTeamLoRAPOIClassifier(nn.Module):
                 graph_candidate_scores,
                 graph_candidate_mask,
             )
-        loss = F.cross_entropy(logits.float(), labels) if labels is not None else None
+        loss = None
+        if labels is not None:
+            if self.raat_mode == "target_mask_2view" and raat_graph_candidate_indices is not None:
+                raat_logits = mlp_logits * self.mlp_logit_scale
+                if self.graph_prior_alpha != 0 and self.graph_prior_mode != "none":
+                    raat_logits = raat_logits + self.build_graph_prior(
+                        raat_logits,
+                        raat_graph_candidate_indices,
+                        raat_graph_candidate_ranks,
+                        raat_graph_candidate_scores,
+                        raat_graph_candidate_mask,
+                    )
+                clean_loss = F.cross_entropy(logits.float(), labels, reduction="none")
+                raat_loss = F.cross_entropy(raat_logits.float(), labels, reduction="none")
+                loss = torch.maximum(clean_loss, raat_loss).mean()
+            else:
+                loss = F.cross_entropy(logits.float(), labels)
         graph_noise_logits = self.graph_noise_head(pooled)
         if loss is not None and self.graph_noise_loss_weight > 0 and graph_noise_labels is not None:
             noise_loss = F.cross_entropy(graph_noise_logits.float(), graph_noise_labels.to(graph_noise_logits.device))
@@ -758,6 +796,7 @@ def make_training_args(args: argparse.Namespace) -> TrainingArguments:
     kwargs = {
         "output_dir": str(args.output_dir),
         "num_train_epochs": args.epochs,
+        "max_steps": args.max_steps,
         "per_device_train_batch_size": args.batch_size,
         "per_device_eval_batch_size": args.eval_batch_size,
         "gradient_accumulation_steps": args.grad_accum,
@@ -849,6 +888,26 @@ def main() -> None:
     os.environ.setdefault("NCCL_P2P_DISABLE", "1")
     os.environ.setdefault("NCCL_IB_DISABLE", "1")
     args = parse_args()
+    if args.raat_mode != "none":
+        noisy_graph_args = {
+            "graph_prior_dropout": args.graph_prior_dropout,
+            "graph_prior_random_cutoffs": args.graph_prior_random_cutoffs,
+            "graph_candidate_drop_prob": args.graph_candidate_drop_prob,
+            "graph_target_mask_prob": args.graph_target_mask_prob,
+            "graph_irrelevant_mix_prob": args.graph_irrelevant_mix_prob,
+            "graph_rank_noise_prob": args.graph_rank_noise_prob,
+        }
+        active_noisy_args = {key: value for key, value in noisy_graph_args.items() if value not in (0, 0.0, "", None)}
+        if active_noisy_args:
+            print(
+                json.dumps(
+                    {
+                        "warning": "RAAT mode is enabled; legacy random graph noise args are also active.",
+                        "active_legacy_noise_args": active_noisy_args,
+                    },
+                    ensure_ascii=False,
+                )
+            )
     graph_prior_random_cutoffs = parse_cutoffs(args.graph_prior_random_cutoffs)
 
     semantic_map = load_semantic_map(args.semantic_map)
@@ -919,6 +978,7 @@ def main() -> None:
         graph_prior_mode=args.graph_prior_mode,
         mlp_logit_scale=args.mlp_logit_scale,
         graph_noise_loss_weight=args.graph_noise_loss_weight,
+        raat_mode=args.raat_mode,
     )
     keep_trainable_params_fp32(model)
     print(json.dumps({"teamlora_replaced_modules": replaced}, ensure_ascii=False))
@@ -937,7 +997,7 @@ def main() -> None:
         graph_rank_noise_prob=args.graph_rank_noise_prob,
     )
     val_ds = POIClassificationDataset(val_rows, tokenizer, args.max_length)
-    collator = DataCollatorForPOIClassification(tokenizer)
+    collator = DataCollatorForPOIClassification(tokenizer, raat_mode=args.raat_mode)
     save_metadata = {
         "base_model": str(args.base_model),
         "num_pois": len(poi2idx),
@@ -960,6 +1020,7 @@ def main() -> None:
         "graph_irrelevant_mix_prob": args.graph_irrelevant_mix_prob,
         "graph_rank_noise_prob": args.graph_rank_noise_prob,
         "graph_noise_loss_weight": args.graph_noise_loss_weight,
+        "raat_mode": args.raat_mode,
     }
     trainer = TrainableOnlyTrainer(
         **{

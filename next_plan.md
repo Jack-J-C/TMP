@@ -1,296 +1,181 @@
-可以。先不改代码，等这轮 top100 + graph prior 训练结果出来后再决定。预改进方案如下。
+# TMP Current Mainline Plan
 
-**目标**
-把当前模型从：
+本文档只记录当前有效主线。旧结论如果被推翻，直接覆盖，不保留流水账。
 
-```text
-GraphRAG top100 prior + MLP full-class fallback
-```
+## 结论更新
 
-升级成：
+当前 `full-POI classifier + GraphRAG prior` 主架构效果不理想，后续不再把它作为主要优化方向。
 
-```text
-RAAT-style candidate-pool robustness training
-```
+`2-view RAAT`、candidate dropout、target mask、rank noise 等机制只能增强鲁棒性，不能修复主架构表达不对齐的问题。若主架构本身不能有效利用 `query-candidate` 语义，再继续叠加 RAAT 只会增加训练复杂度，收益有限。
 
-核心目的不是提高 GraphRAG recall 本身，而是让模型在候选池不完整、排序错误、含噪时不要被 prior 绑死。
-
-**方案一：候选池噪声增强**
-对每个训练样本构造 4 类候选池版本：
+因此当前主线切换为：
 
 ```text
-o: original
-原始 GraphRAG top100。
-
-p: partial / masked
-随机截断 top10/top30/top50，或随机删除 10%-20% 候选。
-
-f: counterfactual
-如果 target 在候选池中，以一定概率移除 target，并加入同 category / 相近 geo-cell 的错误 POI。
-
-c: irrelevant
-混入其他样本的热门 POI 或完全无关 POI，模拟错误召回。
+Semantic-ID GraphRAG Top100
+        ↓
+candidate-wise query-candidate reranker
+        ↓
+Top1 / Top5 / Top10 / Top20 / MRR
 ```
 
-评估时仍使用干净 top100。
+旧 `train_teamlora_poi_classifier.py` 保留为 baseline 和消融，不作为下一版主线。
 
-**方案二：hardest candidate-pool selection**
-每个 batch 内，对同一个样本的多个候选池版本分别计算 loss：
+## 目标主架构
 
 ```text
-loss_o, loss_p, loss_f, loss_c
+raw trajectory / user history / geo / time
+        ↓
+LoRA-A-v2 offline refined_prompt
+        ↓
+Semantic-ID GraphRAG Top100 candidates
+        ↓
+拆成 query-candidate pair
+        ↓
+Shared Llama-3.2-1B Backbone
+        ↓
+3 anonymous LoRA experts
+        ↓
+Expert Fusion / Gate
+        ↓
+Candidate Scoring Head
+        ↓
+rank Top100 candidates
 ```
 
-选择当前最难版本反传：
+核心变化：
+
+- 从 `一次 forward 输出全 POI logits` 改成 `每个候选单独打 relevance score`。
+- 从 `GraphRAG prior 加到 full logits` 改成 `GraphRAG rank/score/source 作为 candidate feature`。
+- 从单一路径改成三 LoRA expert + gate fusion，但默认不手工规定每个 expert 学什么。
+- 评估只在当前 Top100 candidate set 内排序，指标为 `top1/top5/top10/top20/MRR`。
+
+## 为什么要切换
+
+当前 full-classifier 的主要问题：
+
+- 类别空间是全 POI vocab，1B 模型和小样本 LoRA 很难稳定学习所有 POI 的全局分类边界。
+- GraphRAG 的 Top100 是强先验，但当前只是作为 logits prior 加进去，模型容易在训练后期用 MLP logits 扰乱 graph ranking。
+- 输入里虽然有 GraphRAG 候选文本，但模型不是逐候选比较，无法精细建模“这个 candidate 是否匹配当前 trajectory”。
+- RAAT 只能模拟候选噪声，不能让模型天然学会候选间排序。
+
+candidate-wise reranker 更符合任务：
+
+- 每次只判断一个候选和 query 是否匹配，训练目标更局部、更稳定。
+- semantic_id、graph_rank、score、sources 可以直接进入 candidate 表示。
+- 可以自然做 hard negative、target-mask、source dropout、rank noise 等增强。
+- 与传统 POI reranking 论文更容易对齐。
+
+## 2-view RAAT 的定位
+
+`2-view RAAT` 已在旧 classifier 脚本中实现：
 
 ```text
-loss_adv = max(loss_o, loss_p, loss_f, loss_c)
-```
-
-这对应 RAAT 的 adaptive adversarial training，但我们用分类 CE 代替生成式 token likelihood。
-
-**方案三：graph reliability 辅助头**
-在 pooled hidden state 后加一个小 head：
-
-```text
-graph_reliability_head: hidden -> 4 classes
-```
-
-预测当前候选池类型：
-
-```text
-0 = original
-1 = partial/masked
-2 = counterfactual
-3 = irrelevant
-```
-
-或者更贴合 POI：
-
-```text
-0 = target_in_top10
-1 = target_in_top30
-2 = target_in_top100
-3 = target_not_in_top100
-```
-
-总损失：
-
-```text
-loss = poi_ce_loss
-     + lambda_noise * graph_noise_cls_loss
-```
-
-建议 `lambda_noise=0.05 ~ 0.2`，不要太大，避免辅助任务压过 POI 主任务。
-
-**优先级**
-如果这轮训练结果显示：
-
-```text
-top20 接近 GraphRAG hit@20，但 top1/MRR 低
-```
-
-优先做重排序能力增强，候选池噪声可以轻量加入。
-
-如果结果显示：
-
-```text
-top20/top100 内指标仍很低，接近 popularity baseline
-```
-
-优先检查 graph prior/eval/logits 融合，不急着上 RAAT。
-
-如果结果显示：
-
-```text
-top1/top5 提升明显，但 top100 未命中样本表现差
-```
-
-再上 RAAT-style candidate-pool robustness，重点做 target-mask 和 counterfactual 候选。
-
-**建议第一版参数**
-后续若要改，先用轻量配置：
-
-```text
-graph_adv_training = true
-graph_adv_variants = original,masked,counterfactual,irrelevant
-graph_target_mask_prob = 0.25
-graph_candidate_drop_prob = 0.10
-graph_irrelevant_mix_prob = 0.10
-graph_noise_loss_weight = 0.1
-graph_adv_mode = max_loss
-```
-
-不要一开始噪声太强。GraphRAG top100 是目前最强信号，目标是提升鲁棒性，不是破坏召回。
-
----
-
-## 已实现的第一版改进
-
-当前先采用轻量 RAAT 融合，而不是完整 4 倍 forward 的 hardest-selection。原因是完整 RAAT 会显著增加显存和训练时间；当前首要问题是 step400 后 MLP logits 开始扰乱 GraphRAG prior 排序，因此先做可控融合和候选池鲁棒训练。
-
-### 已加入机制
-
-1. MLP logits 缩放
-
-```text
-final_logits = graph_prior + mlp_logit_scale * mlp_logits
-```
-
-用于避免后期 MLP full-class logits 覆盖 GraphRAG 排序。建议先试 `mlp_logit_scale=0.3` 或 `0.5`。
-
-2. RAAT-style 候选池噪声
-
-训练集动态构造候选池扰动，评估集保持干净 top100。
-
-```text
-original: 原始 GraphRAG top100
-partial: dropout / cutoff / candidate drop
-counterfactual: target-mask，模拟 GraphRAG 未命中
-irrelevant: 混入随机错误 POI
-rank-noise: 打乱候选排名
-```
-
-3. Graph noise auxiliary head
-
-在 pooled hidden state 后增加 4 类辅助头，预测当前候选池噪声类型。
-
-```text
-loss = poi_ce_loss + graph_noise_loss_weight * graph_noise_cls_loss
-```
-
-建议 `graph_noise_loss_weight=0.05`，最多先不要超过 `0.1`。
-
-4. Best checkpoint selection
-
-支持按 `eval_mrr` 或 `eval_top1` 自动加载最佳模型，避免出现 step400 最好但 final 变差。
-
-### 推荐下一版训练命令
-
-```bash
-cd /mnt/data/yyl/TMP
-mkdir -p logs
-nohup bash -c '
-CUDA_VISIBLE_DEVICES=0 PYTORCH_CUDA_ALLOC_CONF=expandable_segments:True \
-/mnt/data/yyl/miniconda3/envs/poi_data/bin/python \
-src/poi_classification/train_teamlora_poi_classifier.py \
-  --output-dir models/poi-teamlora-classifier-llama32-1b-graphprior-raftlite-v1 \
-  --pooling last_mean \
-  --graph-prior-mode rank \
-  --graph-prior-alpha 4.0 \
-  --mlp-logit-scale 0.3 \
-  --graph-prior-dropout 0.10 \
-  --graph-prior-random-cutoffs 10,30,100 \
-  --graph-candidate-drop-prob 0.10 \
-  --graph-target-mask-prob 0.20 \
-  --graph-irrelevant-mix-prob 0.10 \
-  --graph-rank-noise-prob 0.10 \
-  --graph-noise-loss-weight 0.05 \
-  --max-length 3072 \
-  --batch-size 4 \
-  --eval-batch-size 2 \
-  --grad-accum 4 \
-  --epochs 1 \
-  --lr 1e-4 \
-  --bf16 \
-  --gradient-checkpointing \
-  --load-best-model-at-end \
-  --metric-for-best-model mrr
-' > logs/poi-teamlora-graphprior-raftlite-v1.log 2>&1 &
-```
-
-### 观察重点
-
-```text
-如果 step200/400 的 top1/MRR 高，但后续仍回落：
-  继续降低 lr 或 mlp_logit_scale。
-
-如果 top20 提升但 top1/MRR 不提升：
-  说明 recall/fusion 有效，重排序仍弱；再考虑 full RAAT hardest-selection。
-
-如果全部指标下降：
-  噪声过强，先关闭 irrelevant/rank-noise，只保留 mlp_logit_scale + target-mask。
-```
-
-
-
-
-对，当前版本是：
-
-```text
-每个样本在每次 __getitem__ 时，动态随机生成一个候选池版本。
-```
-
-它可能是：
-
-```text
-original
-partial/cutoff/dropout
-target-mask/counterfactual
-irrelevant mix
-rank-noise
-```
-
-但一次 forward 只看一个版本，不会同时看四个版本。
-
-后续可以上完整 RAAT，但建议等这版结果出来后再决定。完整 RAAT 需要这样改：
-
-```text
-同一个样本构造 4 个候选池版本：
-o = original
-p = partial/masked
-f = counterfactual target-mask
-c = irrelevant mix
-
-同一批样本复制成 4 份 forward：
-logits_o, logits_p, logits_f, logits_c
-
-分别计算 CE：
-loss_o, loss_p, loss_f, loss_c
-
-选择最难版本：
-loss_adv = max(loss_o, loss_p, loss_f, loss_c)
-
-总损失：
-loss = loss_adv + lambda_noise * noise_cls_loss
-```
-
-优点：
-
-```text
-更接近 RAAT；
-明确训练模型处理最难候选池噪声；
-比随机扰动更强。
-```
-
-代价：
-
-```text
-训练显存/时间接近 3-4 倍；
-max-length=3072 时压力很大；
-batch_size=4 可能要降到 1 或 2；
-实现要改 Trainer.compute_loss，不能只在 Dataset 里做。
-```
-
-所以我建议分阶段：
-
-```text
-第一阶段：当前轻量 RAAT
-看 step200/400/600 是否稳定优于上一版。
-
-第二阶段：如果仍出现后期退化或候选外 fallback 弱
-再做 full RAAT hardest-selection。
-
-第三阶段：如果 full RAAT 显存太大
-做折中版：每个样本只采样 2 个版本 original + hard_noise，再取 max loss。
-```
-
-最现实的下一版可能不是完整 4 版本 RAAT，而是：
-
-```text
-2-view RAAT:
 original + target-mask
 loss = max(loss_original, loss_target_mask)
 ```
 
-这个对你的 POI 任务最有效，因为最大问题是 GraphRAG top100 未命中或被 prior 绑死。
+它的定位是增强模块，不是主架构。
+
+后续如果 candidate-wise reranker 已经有效，可以把 RAAT 迁移到 pair/listwise 训练中：
+
+```text
+clean candidate features
+target-mask / hard-negative candidate features
+loss = max(clean_listwise_loss, adversarial_listwise_loss)
+```
+
+在新主线达到合理 baseline 前，不优先继续强化旧 classifier 的 RAAT。
+
+## 下一步实现顺序
+
+### Step 1: 构建 pairwise/listwise 数据
+
+输入：
+
+```text
+retrieval_assets/NewYork/joined_poi_classification/train_joined_top100.parquet
+retrieval_assets/NewYork/joined_poi_classification/val_joined_top100.parquet
+```
+
+输出建议：
+
+```text
+retrieval_assets/NewYork/teamlora_reranker/train_pairs_top100.jsonl
+retrieval_assets/NewYork/teamlora_reranker/val_pairs_top100.jsonl
+```
+
+每条 pair 至少包含：
+
+```json
+{
+  "sample_id": "...",
+  "candidate_poi_id": "...",
+  "candidate_rank": 1,
+  "candidate_score": 0.0,
+  "candidate_sources": ["transition", "geo", "history"],
+  "candidate_semantic_id": "...",
+  "label": 0,
+  "target_poi_id": "...",
+  "query_text": "...",
+  "candidate_text": "..."
+}
+```
+
+训练时按 `sample_id` group，组内 Top100 计算 listwise softmax CE。
+
+### Step 2: 直接训练匿名三专家 TeamLoRA + RAAT
+
+不再把单专家 baseline 作为主线目标。单专家即便成功，论文创新点不足；当前直接实现匿名三专家结构，复用同一个 query-candidate 输入，由 gate 自动学习专家组合：
+
+```text
+Expert-1 / Expert-2 / Expert-3
+    shared input = raw trajectory + refined evidence + candidate semantic graph evidence
+```
+
+融合方式：
+
+```text
+h = gate([h_pref, h_graph, h_refine])
+score = scoring_head(h, candidate_features)
+```
+
+`--expert-mode named` 仅作为可选消融，可显式拆成 pref/graph/refine 三个 view；默认不使用。
+
+训练目标使用 group/listwise CE。由于 Top100 未命中的样本没有正候选，默认只用 `target_in_candidates=true` 的 train groups 训练；验证仍保留全量，用 `candidate_hit` 标明候选上限。
+
+### Step 3: RAAT / hard negative
+
+第一版直接启用 2-view RAAT：
+
+```text
+clean listwise loss
+hard view listwise loss
+loss = max(clean_loss, hard_loss)
+```
+
+hard view 首先使用 target candidate 的 graph evidence mask，而不是删除 target candidate；删除 target 会让 listwise CE 失去正样本。
+
+后续再加：
+
+```text
+source dropout
+rank noise
+same-category / same-geo hard negatives
+```
+
+## 当前不做
+
+- 不继续把旧 `full-POI classifier + GraphRAG prior` 当主线刷参数。
+- 不把单专家 reranker 当最终方案。
+- 不优先跑 full 4-view RAAT。
+- 不重新训练 generative C1。
+- 不把 `target_in_candidates=false` 等泄露性字段输入模型。
+- 不把 selector 作为当前阶段重点；selector 应在 reranker 主体有效后再讨论。
+
+## 当前可保留的旧资产
+
+- `src/poi_classification/train_teamlora_poi_classifier.py`: full-classifier baseline，可用于消融。
+- `--raat-mode target_mask_2view`: 旧架构上的 RAAT baseline。
+- `retrieval_assets/NewYork/joined_poi_classification/*top100*`: 新 reranker 可直接读取的数据来源，不强制重新生成 JSONL。
+- `retrieval_assets/NewYork/double_llm/graphrag_semantic_edges_v2_top100_*_candidates.jsonl`: GraphRAG Top100 原始候选来源。
+- `models/prompt-refiner-lora-llama32-1b-decision-v2-final`: LoRA-A-v2 refined prompt 生成权重。
