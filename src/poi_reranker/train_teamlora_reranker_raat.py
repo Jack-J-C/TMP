@@ -47,6 +47,7 @@ def parse_args() -> argparse.Namespace:
     p.add_argument("--hard-negatives", type=int, default=16, help="Prefer negatives from top ranks.")
     p.add_argument("--eval-top-k", type=int, default=100)
     p.add_argument("--train-hit-only", action=argparse.BooleanOptionalAction, default=True, help="Train only groups whose TopK contains the target.")
+    p.add_argument("--val-hit-only", action=argparse.BooleanOptionalAction, default=False, help="Evaluate only val groups whose TopK contains the target.")
     p.add_argument("--batch-groups", type=int, default=1, help="Number of query groups per batch.")
     p.add_argument("--grad-accum", type=int, default=8)
     p.add_argument("--epochs", type=float, default=1.0)
@@ -78,6 +79,8 @@ def parse_args() -> argparse.Namespace:
     p.add_argument("--num-workers", type=int, default=0)
     p.add_argument("--max-train-groups", type=int, default=None)
     p.add_argument("--max-val-groups", type=int, default=None)
+    p.add_argument("--eval-candidate-limit", type=int, default=None, help="Optional fast eval limit per group. Final Top100 reports should leave this unset.")
+    p.add_argument("--eval-final-only", action="store_true", help="Skip intermediate eval and evaluate only at final step.")
     return p.parse_args()
 
 
@@ -198,6 +201,7 @@ class RerankerGroupDataset(Dataset):
     target_demote_score_scale: float = 0.2
     hardneg_promote_topn: int = 3
     hardneg_score_boost: float = 2.0
+    eval_candidate_limit: int | None = None
 
     def __len__(self) -> int:
         return len(self.groups)
@@ -223,6 +227,8 @@ class RerankerGroupDataset(Dataset):
             random.shuffle(selected)
         else:
             selected = candidates
+            if self.eval_candidate_limit is not None:
+                selected = selected[: max(1, int(self.eval_candidate_limit))]
         labels = [int(c.get("label") or 0) for c in selected]
         if not any(labels):
             # No positive in TopK. Keep the group for eval denominator, but skip
@@ -588,8 +594,12 @@ def main() -> None:
     raw_train_groups = len(train_groups)
     if args.train_hit_only:
         train_groups = [group for group in train_groups if group.get("target_in_candidates")]
+    raw_val_groups = len(val_groups)
+    if args.val_hit_only:
+        val_groups = [group for group in val_groups if group.get("target_in_candidates")]
     data_summary = {
         "raw_train_groups": raw_train_groups,
+        "raw_val_groups": raw_val_groups,
         "train_groups": len(train_groups),
         "val_groups": len(val_groups),
         "train_hit": sum(1 for x in train_groups if x.get("target_in_candidates")) / max(1, len(train_groups)),
@@ -649,6 +659,7 @@ def main() -> None:
         target_demote_score_scale=args.target_demote_score_scale,
         hardneg_promote_topn=args.hardneg_promote_topn,
         hardneg_score_boost=args.hardneg_score_boost,
+        eval_candidate_limit=args.eval_candidate_limit,
     )
     train_loader = DataLoader(train_ds, batch_size=args.batch_groups, shuffle=True, collate_fn=collate_groups, num_workers=args.num_workers)
     val_loader = DataLoader(val_ds, batch_size=1, shuffle=False, collate_fn=collate_groups, num_workers=args.num_workers)
@@ -713,7 +724,11 @@ def main() -> None:
             if global_step % args.logging_steps == 0:
                 avg_loss = sum(running_loss[-args.logging_steps :]) / max(1, min(len(running_loss), args.logging_steps))
                 print(json.dumps({"step": global_step, "loss": avg_loss, "lr": scheduler.get_last_lr()[0]}, ensure_ascii=False))
-            if global_step % args.eval_steps == 0 or global_step == total_steps:
+            should_eval = (global_step % args.eval_steps == 0 or global_step == total_steps) and (
+                not args.eval_final_only or global_step == total_steps
+            )
+            if should_eval:
+                model.save_trainable(args.output_dir / "latest", metadata | {"step": global_step, "checkpoint_type": "latest_before_eval"})
                 metrics = evaluate(model, tokenizer, val_loader, args, device)
                 metrics["step"] = global_step
                 print(json.dumps(metrics, ensure_ascii=False))
@@ -723,12 +738,12 @@ def main() -> None:
                     best_mrr = metrics["mrr"]
                     model.save_trainable(args.output_dir / "best", metadata | {"best_step": global_step, "best_metrics": metrics})
                 model.train()
-            if global_step % args.save_steps == 0:
-                model.save_trainable(args.output_dir / f"checkpoint-{global_step}", metadata | {"step": global_step})
+            if global_step % args.save_steps == 0 and not should_eval:
+                model.save_trainable(args.output_dir / "latest", metadata | {"step": global_step, "checkpoint_type": "latest"})
             if global_step >= total_steps:
                 break
     progress.close()
-    model.save_trainable(args.output_dir / "final", metadata | {"final_step": global_step})
+    model.save_trainable(args.output_dir / "latest", metadata | {"final_step": global_step, "checkpoint_type": "latest_final"})
 
 
 if __name__ == "__main__":
