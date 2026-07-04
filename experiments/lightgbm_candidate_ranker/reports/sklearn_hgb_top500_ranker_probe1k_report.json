@@ -1,0 +1,54 @@
+{
+  "train_candidates": "experiments/lightgbm_candidate_ranker/candidates/graphrag_semantic_edges_v2_top500_train_candidates.jsonl",
+  "val_candidates": "experiments/graphrag_bge_rerank/candidates/graphrag_semantic_edges_v2_top500_val_candidates.jsonl",
+  "top_in": 500,
+  "top_outs": [
+    50,
+    100,
+    150,
+    200,
+    300,
+    500
+  ],
+  "feature_count": 28,
+  "train_summary": {
+    "groups": 1000,
+    "hit_groups": 739,
+    "missed_groups": 261,
+    "rows": 50725,
+    "positives": 739,
+    "negatives": 49986
+  },
+  "model": {
+    "type": "sklearn.HistGradientBoostingClassifier",
+    "max_iter": 200,
+    "learning_rate": 0.06,
+    "max_leaf_nodes": 31,
+    "l2_regularization": 0.05,
+    "n_iter": 71
+  },
+  "coverage": {
+    "rows": 300,
+    "graph_hit@50": 0.513333,
+    "graph_hit@100": 0.56,
+    "graph_hit@150": 0.596667,
+    "graph_hit@200": 0.633333,
+    "graph_hit@300": 0.656667,
+    "graph_hit@500": 0.696667,
+    "learned_hit@50": 0.44,
+    "learned_hit@100": 0.506667,
+    "learned_hit@150": 0.543333,
+    "learned_hit@200": 0.556667,
+    "learned_hit@300": 0.61,
+    "learned_hit@500": 0.696667,
+    "source_hit@top_in": 0.696667,
+    "learned_retained_any_rank": 0.696667,
+    "rank_delta_mean": 39.0478,
+    "rank_delta_improved": 52,
+    "rank_delta_worse": 115
+  },
+  "pair_metrics": {
+    "pair_auc": 0.8216839117671253,
+    "average_precision": 0.1441660856089613
+  }
+}

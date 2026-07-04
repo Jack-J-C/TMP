@@ -1,0 +1,82 @@
+[
+  {
+    "file": "experiments/graphrag_bge_rerank/candidates/graphrag_semantic_edges_v2_top200_val_candidates.jsonl",
+    "rows": 3959,
+    "max_candidate_k": 200,
+    "hit_ratio": 0.675676,
+    "rank_when_hit": {
+      "mean": 24.0766,
+      "p50": 4,
+      "p90": 82,
+      "p95": 131,
+      "max": 200
+    },
+    "hit@50": 0.572114,
+    "hit@100": 0.624653,
+    "hit@150": 0.653448,
+    "hit@200": 0.675676,
+    "hit@300": 0.675676,
+    "hit@400": 0.675676,
+    "hit@500": 0.675676
+  },
+  {
+    "file": "experiments/graphrag_bge_rerank/candidates/graphrag_semantic_edges_v2_top300_val_candidates.jsonl",
+    "rows": 3959,
+    "max_candidate_k": 300,
+    "hit_ratio": 0.710533,
+    "rank_when_hit": {
+      "mean": 35.0608,
+      "p50": 5,
+      "p90": 127,
+      "p95": 197,
+      "max": 300
+    },
+    "hit@50": 0.572114,
+    "hit@100": 0.624653,
+    "hit@150": 0.653448,
+    "hit@200": 0.675676,
+    "hit@300": 0.710533,
+    "hit@400": 0.710533,
+    "hit@500": 0.710533
+  },
+  {
+    "file": "experiments/graphrag_bge_rerank/candidates/graphrag_semantic_edges_v2_top400_val_candidates.jsonl",
+    "rows": 3959,
+    "max_candidate_k": 400,
+    "hit_ratio": 0.728719,
+    "rank_when_hit": {
+      "mean": 42.7518,
+      "p50": 5,
+      "p90": 155,
+      "p95": 244,
+      "max": 400
+    },
+    "hit@50": 0.572114,
+    "hit@100": 0.624653,
+    "hit@150": 0.653448,
+    "hit@200": 0.675676,
+    "hit@300": 0.710533,
+    "hit@400": 0.728719,
+    "hit@500": 0.728719
+  },
+  {
+    "file": "experiments/graphrag_bge_rerank/candidates/graphrag_semantic_edges_v2_top500_val_candidates.jsonl",
+    "rows": 3959,
+    "max_candidate_k": 499,
+    "hit_ratio": 0.74539,
+    "rank_when_hit": {
+      "mean": 51.879,
+      "p50": 6,
+      "p90": 188,
+      "p95": 289,
+      "max": 499
+    },
+    "hit@50": 0.572114,
+    "hit@100": 0.624653,
+    "hit@150": 0.653448,
+    "hit@200": 0.675676,
+    "hit@300": 0.710533,
+    "hit@400": 0.728719,
+    "hit@500": 0.74539
+  }
+]

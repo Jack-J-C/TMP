@@ -60,6 +60,12 @@ def parse_args() -> argparse.Namespace:
     p.add_argument("--lora-dropout", type=float, default=0.05)
     p.add_argument("--scorer-dropout", type=float, default=0.1)
     p.add_argument("--graph-feature-dim", type=int, default=32)
+    p.add_argument("--use-graph-prior", action="store_true", help="Use GraphRAG rank prior and train TeamLoRA as residual correction.")
+    p.add_argument("--graph-prior-type", choices=["rank_log", "rank_invlog"], default="rank_log")
+    p.add_argument("--residual-alpha-init", type=float, default=0.1)
+    p.add_argument("--residual-l2", type=float, default=0.0, help="Optional residual score L2 penalty.")
+    p.add_argument("--residual-bound-mode", choices=["none", "tanh", "clamp"], default="none")
+    p.add_argument("--residual-bound-value", type=float, default=0.3)
     p.add_argument("--raat-mode", choices=["none", "target_mask_2view", "graph_3view"], default="target_mask_2view")
     p.add_argument("--target-demote-rank-min", type=int, default=50)
     p.add_argument("--target-demote-score-scale", type=float, default=0.2)
@@ -80,6 +86,7 @@ def parse_args() -> argparse.Namespace:
     p.add_argument("--max-train-groups", type=int, default=None)
     p.add_argument("--max-val-groups", type=int, default=None)
     p.add_argument("--eval-candidate-limit", type=int, default=None, help="Optional fast eval limit per group. Final Top100 reports should leave this unset.")
+    p.add_argument("--eval-candidate-batch-size", type=int, default=None, help="Score eval candidates in chunks to reduce peak memory.")
     p.add_argument("--eval-final-only", action="store_true", help="Skip intermediate eval and evaluate only at final step.")
     return p.parse_args()
 
@@ -369,9 +376,21 @@ class TeamLoRAReranker(nn.Module):
         graph_feature_size: int,
         graph_feature_dim: int,
         dropout: float,
+        use_graph_prior: bool = False,
+        graph_prior_type: str = "rank_log",
+        residual_alpha_init: float = 0.1,
+        residual_bound_mode: str = "none",
+        residual_bound_value: float = 0.3,
     ):
         super().__init__()
         self.base_model = base_model
+        self.use_graph_prior = bool(use_graph_prior)
+        self.graph_prior_type = str(graph_prior_type)
+        self.residual_bound_mode = str(residual_bound_mode)
+        self.residual_bound_value = float(residual_bound_value)
+        if self.use_graph_prior:
+            init = max(float(residual_alpha_init), 1e-6)
+            self.residual_alpha_param = nn.Parameter(torch.tensor(math.log(math.expm1(init)), dtype=torch.float32))
         self.graph_feature_proj = nn.Sequential(
             nn.Linear(graph_feature_size, graph_feature_dim),
             nn.GELU(),
@@ -409,7 +428,8 @@ class TeamLoRAReranker(nn.Module):
         graph_batch: Dict[str, torch.Tensor],
         refine_batch: Dict[str, torch.Tensor],
         graph_features_tensor: torch.Tensor,
-    ) -> torch.Tensor:
+        return_parts: bool = False,
+    ) -> torch.Tensor | tuple[torch.Tensor, torch.Tensor, torch.Tensor, torch.Tensor]:
         h_pref = self.encode(pref_batch["input_ids"], pref_batch["attention_mask"], "pref")
         h_graph = self.encode(graph_batch["input_ids"], graph_batch["attention_mask"], "graph")
         h_refine = self.encode(refine_batch["input_ids"], refine_batch["attention_mask"], "refine")
@@ -421,7 +441,34 @@ class TeamLoRAReranker(nn.Module):
         gate = F.softmax(gate_logits, dim=-1)
         stacked = torch.stack([h_pref, h_graph, h_refine], dim=1)
         fused = (stacked * gate.unsqueeze(-1)).sum(dim=1)
-        return self.scorer(torch.cat([fused, gf], dim=-1)).squeeze(-1)
+        residual = self.scorer(torch.cat([fused, gf], dim=-1)).squeeze(-1)
+        if not self.use_graph_prior:
+            return residual
+        prior = self.graph_prior(graph_features_tensor).to(residual.device, dtype=residual.dtype)
+        alpha = F.softplus(self.residual_alpha_param).to(residual.device, dtype=residual.dtype)
+        correction = self.bound_residual_correction(alpha * residual)
+        scores = prior + correction
+        if return_parts:
+            return scores, residual, prior, alpha
+        return scores
+
+    def bound_residual_correction(self, correction: torch.Tensor) -> torch.Tensor:
+        if self.residual_bound_mode == "none":
+            return correction
+        bound = max(float(self.residual_bound_value), 1e-6)
+        if self.residual_bound_mode == "tanh":
+            return correction.new_tensor(bound) * torch.tanh(correction / bound)
+        if self.residual_bound_mode == "clamp":
+            return correction.clamp(min=-bound, max=bound)
+        raise ValueError(f"Unsupported residual_bound_mode: {self.residual_bound_mode}")
+
+    def graph_prior(self, graph_features_tensor: torch.Tensor) -> torch.Tensor:
+        features = graph_features_tensor.float()
+        if self.graph_prior_type == "rank_invlog":
+            return features[:, 0]
+        rank_norm = features[:, 2].clamp(min=0.01, max=1.0)
+        rank = rank_norm * 100.0
+        return -torch.log(rank.clamp(min=1.0))
 
     def save_trainable(self, output_dir: Path, metadata: Dict[str, Any]) -> None:
         output_dir.mkdir(parents=True, exist_ok=True)
@@ -494,22 +541,63 @@ def make_batch(
     )
 
 
+def slice_eval_group(group: Dict[str, Any], start: int, end: int) -> Dict[str, Any]:
+    sliced = dict(group)
+    keys = [
+        "pref_texts",
+        "graph_texts",
+        "graph_texts_masked",
+        "graph_texts_demote",
+        "graph_texts_hardneg",
+        "refine_texts",
+        "graph_features",
+        "graph_features_masked",
+        "graph_features_demote",
+        "graph_features_hardneg",
+        "candidate_poi_ids",
+    ]
+    for key in keys:
+        if key in group:
+            sliced[key] = list(group[key])[start:end]
+    sliced["target_pos"] = -1
+    return sliced
+
+
+def score_eval_group(
+    model: TeamLoRAReranker,
+    tokenizer: Any,
+    group: Dict[str, Any],
+    max_length: int,
+    device: torch.device,
+    candidate_batch_size: int | None,
+) -> torch.Tensor:
+    size = len(group["pref_texts"])
+    if candidate_batch_size is None or candidate_batch_size <= 0 or candidate_batch_size >= size:
+        pref, graph, refine, gf, _, _ = make_batch(tokenizer, [group], max_length, device, masked=False)
+        return model(pref, graph, refine, gf).detach()
+
+    chunks: List[torch.Tensor] = []
+    for start in range(0, size, candidate_batch_size):
+        chunk_group = slice_eval_group(group, start, min(size, start + candidate_batch_size))
+        pref, graph, refine, gf, _, _ = make_batch(tokenizer, [chunk_group], max_length, device, masked=False)
+        chunks.append(model(pref, graph, refine, gf).detach())
+    return torch.cat(chunks, dim=0)
+
+
 @torch.no_grad()
 def evaluate(model: TeamLoRAReranker, tokenizer: Any, loader: DataLoader, args: argparse.Namespace, device: torch.device) -> Dict[str, float]:
     model.eval()
     ranks: List[int] = []
     missing = 0
+    candidate_batch_size = getattr(args, "eval_candidate_batch_size", None)
     for batch in tqdm(loader, desc="eval", leave=False):
         groups = batch["groups"]
-        pref, graph, refine, gf, sizes, target_positions = make_batch(tokenizer, groups, args.max_length, device, masked=False)
-        scores = model(pref, graph, refine, gf)
-        offset = 0
-        for size, target_pos in zip(sizes, target_positions):
-            group_scores = scores[offset : offset + size]
-            offset += size
+        for group in groups:
+            target_pos = int(group["target_pos"])
             if target_pos < 0:
                 missing += 1
                 continue
+            group_scores = score_eval_group(model, tokenizer, group, args.max_length, device, candidate_batch_size)
             target_score = group_scores[target_pos]
             rank = int(1 + (group_scores > target_score).sum().item())
             ranks.append(rank)
@@ -539,7 +627,7 @@ def evaluate(model: TeamLoRAReranker, tokenizer: Any, loader: DataLoader, args: 
         "conditional_top20": float(np.mean(arr <= 20)),
         "conditional_mrr": float(np.mean(1.0 / arr)),
     }
-    return {
+    metrics = {
         "top1": conditional["conditional_top1"] * candidate_hit,
         "top5": conditional["conditional_top5"] * candidate_hit,
         "top10": conditional["conditional_top10"] * candidate_hit,
@@ -550,6 +638,12 @@ def evaluate(model: TeamLoRAReranker, tokenizer: Any, loader: DataLoader, args: 
         "evaluated": float(total),
         "missed": float(missing),
     }
+    if getattr(model, "use_graph_prior", False):
+        metrics["residual_alpha"] = float(F.softplus(model.residual_alpha_param).detach().cpu().item())
+        metrics["graph_prior_type"] = str(model.graph_prior_type)
+        metrics["residual_bound_mode"] = str(model.residual_bound_mode)
+        metrics["residual_bound_value"] = float(model.residual_bound_value)
+    return metrics
 
 
 def load_groups(path: Path, limit: int | None = None) -> List[Dict[str, Any]]:
@@ -628,6 +722,11 @@ def main() -> None:
         graph_feature_size=8,
         graph_feature_dim=args.graph_feature_dim,
         dropout=args.scorer_dropout,
+        use_graph_prior=args.use_graph_prior,
+        graph_prior_type=args.graph_prior_type,
+        residual_alpha_init=args.residual_alpha_init,
+        residual_bound_mode=args.residual_bound_mode,
+        residual_bound_value=args.residual_bound_value,
     ).to(device)
     if args.gradient_checkpointing:
         model.gradient_checkpointing_enable()
@@ -637,6 +736,17 @@ def main() -> None:
     trainable = sum(p.numel() for p in model.parameters() if p.requires_grad)
     total = sum(p.numel() for p in model.parameters())
     print(json.dumps({"lora_replaced_modules": replaced, "trainable_params": trainable, "total_params": total}, ensure_ascii=False))
+    print(
+        json.dumps(
+            {
+                "model_graph_prior": bool(model.use_graph_prior),
+                "model_graph_prior_type": str(model.graph_prior_type),
+                "model_residual_bound_mode": str(model.residual_bound_mode),
+                "model_residual_bound_value": float(model.residual_bound_value),
+            },
+            ensure_ascii=False,
+        )
+    )
 
     train_ds = RerankerGroupDataset(
         train_groups,
@@ -688,7 +798,13 @@ def main() -> None:
             groups = batch["groups"]
             pref, graph, refine, gf, sizes, target_positions = make_batch(tokenizer, groups, args.max_length, device, masked=False)
             with torch.cuda.amp.autocast(enabled=scaler_enabled, dtype=torch.float16):
-                scores = model(pref, graph, refine, gf)
+                output = model(pref, graph, refine, gf, return_parts=bool(args.use_graph_prior and args.residual_l2 > 0))
+                if isinstance(output, tuple):
+                    scores, residual, _, _ = output
+                    residual_penalty = residual.float().pow(2).mean() * float(args.residual_l2)
+                else:
+                    scores = output
+                    residual_penalty = None
                 clean_loss = group_loss(scores, sizes, target_positions)
                 if clean_loss is None:
                     continue
@@ -708,6 +824,8 @@ def main() -> None:
                         if view_loss is not None:
                             losses.append(view_loss)
                     loss = torch.stack(losses).max()
+                if residual_penalty is not None:
+                    loss = loss + residual_penalty
                 loss = loss / max(1, args.grad_accum)
             scaler.scale(loss).backward()
             running_loss.append(float(loss.detach().cpu().item() * max(1, args.grad_accum)))

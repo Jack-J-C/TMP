@@ -38,6 +38,7 @@ def parse_args() -> argparse.Namespace:
     p.add_argument("--val-hit-only", action="store_true")
     p.add_argument("--max-val-groups", type=int, default=None)
     p.add_argument("--eval-candidate-limit", type=int, default=None)
+    p.add_argument("--eval-candidate-batch-size", type=int, default=None)
     p.add_argument("--output-json", type=Path, default=None)
     p.add_argument("--device", default="cuda")
     p.add_argument("--bf16", action="store_true")
@@ -116,6 +117,11 @@ def main() -> None:
         graph_feature_size=8,
         graph_feature_dim=int(metadata.get("graph_feature_dim", 32)),
         dropout=float(metadata.get("scorer_dropout", 0.1)),
+        use_graph_prior=bool(metadata.get("use_graph_prior", False)),
+        graph_prior_type=str(metadata.get("graph_prior_type", "rank_log")),
+        residual_alpha_init=float(metadata.get("residual_alpha_init", 0.1)),
+        residual_bound_mode=str(metadata.get("residual_bound_mode", "none")),
+        residual_bound_value=float(metadata.get("residual_bound_value", 0.3)),
     ).to(device)
     state_path = checkpoint_dir / "trainable_model.bin"
     if not state_path.exists():
@@ -138,7 +144,7 @@ def main() -> None:
         eval_candidate_limit=args.eval_candidate_limit,
     )
     val_loader = DataLoader(val_ds, batch_size=1, shuffle=False, collate_fn=collate_groups, num_workers=0)
-    eval_args = argparse.Namespace(max_length=max_length)
+    eval_args = argparse.Namespace(max_length=max_length, eval_candidate_batch_size=args.eval_candidate_batch_size)
     metrics = evaluate(model, tokenizer, val_loader, eval_args, device)
     metrics.update(
         {

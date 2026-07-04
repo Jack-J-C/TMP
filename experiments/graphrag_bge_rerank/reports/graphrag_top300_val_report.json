@@ -1,0 +1,21 @@
+{
+  "output": "experiments/graphrag_bge_rerank/candidates/graphrag_semantic_edges_v2_top300_val_candidates.jsonl",
+  "written": 3959,
+  "rows": 3959,
+  "top_k": 300,
+  "legacy_hit_ratio": 0.557717,
+  "hit@1_ratio": 0.188179,
+  "hit@5_ratio": 0.36777,
+  "hit@10_ratio": 0.432432,
+  "hit@20_ratio": 0.487749,
+  "hit@25_ratio": 0.508462,
+  "hit@30_ratio": 0.52387,
+  "hit@50_ratio": 0.572114,
+  "hit@100_ratio": 0.624653,
+  "target_rank_when_hit": {
+    "p50": 5,
+    "p90": 127,
+    "mean": 35.0608,
+    "max": 300
+  }
+}

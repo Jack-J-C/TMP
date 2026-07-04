@@ -1,0 +1,16 @@
+{
+  "candidates": "experiments/graphrag_bge_rerank/candidates/graphrag_semantic_edges_v2_top500_val_candidates.jsonl",
+  "joined_parquet": "retrieval_assets/NewYork/joined_poi_classification/val_joined_top100.parquet",
+  "model_name_or_path": "models/bge-reranker-v2-m3",
+  "top_in": 500,
+  "top_out": 100,
+  "include_refined": false,
+  "query_mode": "trajectory_transition",
+  "passage_mode": "basic",
+  "rows": 100,
+  "hit@100": 0.29,
+  "rank_when_hit": {
+    "mean": 45.3793,
+    "max": 96
+  }
+}

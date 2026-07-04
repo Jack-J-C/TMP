@@ -1,0 +1,21 @@
+{
+  "output": "experiments/lightgbm_candidate_ranker/candidates/graphrag_semantic_edges_v2_top500_train_candidates.jsonl",
+  "written": 30918,
+  "rows": 30918,
+  "top_k": 500,
+  "legacy_hit_ratio": 0.54444,
+  "hit@1_ratio": 0.184747,
+  "hit@5_ratio": 0.354615,
+  "hit@10_ratio": 0.417685,
+  "hit@20_ratio": 0.475095,
+  "hit@25_ratio": 0.496086,
+  "hit@30_ratio": 0.513261,
+  "hit@50_ratio": 0.556763,
+  "hit@100_ratio": 0.615111,
+  "target_rank_when_hit": {
+    "p50": 6,
+    "p90": 190,
+    "mean": 54.095,
+    "max": 500
+  }
+}
