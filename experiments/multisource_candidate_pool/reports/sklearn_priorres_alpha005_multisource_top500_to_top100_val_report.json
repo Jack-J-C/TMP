@@ -1,0 +1,28 @@
+{
+  "candidates": "experiments/multisource_candidate_pool/candidates/multisource_top500_val_candidates.jsonl",
+  "model": "experiments/lightgbm_candidate_ranker/models/sklearn_hgb_top500_ranker_priorres_full.pkl",
+  "output": "experiments/multisource_candidate_pool/candidates/sklearn_priorres_alpha005_multisource_top500_to_top100_val.jsonl",
+  "rows": 3959,
+  "top_in": 500,
+  "top_out": 100,
+  "alpha": 0.05,
+  "graph_prior": "rank_log",
+  "source_coverage": {
+    "hit@50": 0.569083,
+    "hit@100": 0.625158,
+    "hit@150": 0.657742,
+    "hit@200": 0.678959,
+    "hit@300": 0.711543,
+    "hit@500": 0.757515
+  },
+  "reranked_coverage": {
+    "hit@50": 0.583986,
+    "hit@100": 0.644355,
+    "hit@150": 0.673908,
+    "hit@200": 0.694872,
+    "hit@300": 0.722657,
+    "hit@500": 0.757515
+  },
+  "rank_delta_mean": -7.3795,
+  "rank_delta_median": 0.0
+}

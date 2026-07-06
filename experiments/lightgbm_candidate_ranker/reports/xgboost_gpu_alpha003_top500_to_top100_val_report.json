@@ -1,0 +1,26 @@
+{
+  "candidates": "experiments/graphrag_bge_rerank/candidates/graphrag_semantic_edges_v2_top500_val_candidates.jsonl",
+  "model": "experiments/lightgbm_candidate_ranker/models/xgboost_gpu_top500_ranker_priorres_full.pkl",
+  "output": "experiments/lightgbm_candidate_ranker/candidates/xgboost_gpu_alpha003_top500_to_top100_val_candidates.jsonl",
+  "rows": 3959,
+  "top_in": 500,
+  "top_out": 100,
+  "alpha": 0.03,
+  "graph_prior": "rank_log",
+  "source_coverage": {
+    "hit@50": 0.572114,
+    "hit@100": 0.624653,
+    "hit@150": 0.653448,
+    "hit@200": 0.675676,
+    "hit@300": 0.710533,
+    "hit@500": 0.74539
+  },
+  "reranked_coverage": {
+    "hit@50": 0.595858,
+    "hit@100": 0.653953,
+    "hit@150": 0.683001,
+    "hit@200": 0.702955,
+    "hit@300": 0.725183,
+    "hit@500": 0.74539
+  }
+}

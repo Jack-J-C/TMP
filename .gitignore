@@ -1,11 +1,13 @@
 # Python caches
 __pycache__/
+**/__pycache__/
 *.py[cod]
 *$py.class
 .pytest_cache/
 .mypy_cache/
 .ruff_cache/
 .ipynb_checkpoints/
+.cache/
 
 # Virtual environments and local env files
 .venv/
@@ -17,31 +19,41 @@ env/
 # Logs and run outputs
 logs/
 *.log
+*.pid
 nohup.out
 wandb/
 runs/
 outputs/
 tmp/
 temp/
+artifacts/
 
 # Large datasets and generated assets
 dataset/
 retrieval_assets/
+data/
+datasets/
 
 # Model weights and checkpoints
 models/
 checkpoints/
 checkpoint-*/
 **/checkpoint-*/
+adapter_model.safetensors
+model.safetensors
+pytorch_model.bin
+trainable_model.bin
 *.safetensors
 *.bin
 *.pt
 *.pth
 *.ckpt
 *.onnx
+*.gguf
 
 # Common large data formats
 *.jsonl
+*.jsonl.gz
 *.parquet
 *.csv
 *.tsv
@@ -75,6 +87,50 @@ Thumbs.db
 !scripts/**
 !schemas/
 !schemas/**
+!experiments/
+!experiments/**/*.md
+!experiments/**/*.py
+!experiments/**/*.json
 !*.md
 !*.py
 !*.json
+
+# Re-apply hard ignores after allow-list rules above. Keep generated caches and
+# bulky artifacts out even when their parent source/report directories are kept.
+__pycache__/
+**/__pycache__/
+*.py[cod]
+*$py.class
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+.ipynb_checkpoints/
+.cache/
+logs/
+*.log
+*.pid
+models/
+dataset/
+datasets/
+retrieval_assets/
+*.jsonl
+*.jsonl.gz
+*.parquet
+*.csv
+*.tsv
+*.npy
+*.npz
+*.pkl
+*.pickle
+*.arrow
+*.tar
+*.tar.gz
+*.zip
+*.gz
+*.safetensors
+*.bin
+*.pt
+*.pth
+*.ckpt
+*.onnx
+*.gguf

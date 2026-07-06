@@ -1,0 +1,144 @@
+{
+  "train_candidates": "experiments/lightgbm_candidate_ranker/candidates/graphrag_semantic_edges_v2_top500_train_candidates.jsonl",
+  "val_candidates": "experiments/graphrag_bge_rerank/candidates/graphrag_semantic_edges_v2_top500_val_candidates.jsonl",
+  "top_in": 500,
+  "top_outs": [
+    50,
+    100,
+    150,
+    200,
+    300,
+    500
+  ],
+  "residual_alphas": [
+    0.0,
+    0.01,
+    0.02,
+    0.03,
+    0.05,
+    0.07,
+    0.1,
+    0.15,
+    0.2
+  ],
+  "graph_prior": "rank_log",
+  "feature_count": 28,
+  "train_summary": {
+    "groups": 1000,
+    "hit_groups": 739,
+    "missed_groups": 261,
+    "rows": 66418,
+    "positives": 739,
+    "negatives": 65679
+  },
+  "model": {
+    "type": "xgboost.XGBClassifier",
+    "n_estimators": 50,
+    "learning_rate": 0.05,
+    "max_depth": 6,
+    "subsample": 0.9,
+    "colsample_bytree": 1.0,
+    "reg_lambda": 0.05,
+    "min_child_weight": 1.0,
+    "device": "cuda",
+    "scale_pos_weight": 88.87550744248985
+  },
+  "coverage": {
+    "rows": 300,
+    "graph_hit@50": 0.513333,
+    "graph_hit@100": 0.56,
+    "graph_hit@150": 0.596667,
+    "graph_hit@200": 0.633333,
+    "graph_hit@300": 0.656667,
+    "graph_hit@500": 0.696667,
+    "learned_hit@50": 0.496667,
+    "learned_hit@100": 0.536667,
+    "learned_hit@150": 0.583333,
+    "learned_hit@200": 0.613333,
+    "learned_hit@300": 0.66,
+    "learned_hit@500": 0.696667,
+    "source_hit@top_in": 0.696667,
+    "learned_retained_any_rank": 0.696667,
+    "rank_delta_mean": 6.0718,
+    "rank_delta_improved": 63,
+    "rank_delta_worse": 66,
+    "residual_alphas": {
+      "0.0": {
+        "hit@50": 0.513333,
+        "hit@100": 0.56,
+        "hit@150": 0.596667,
+        "hit@200": 0.633333,
+        "hit@300": 0.656667,
+        "hit@500": 0.696667
+      },
+      "0.01": {
+        "hit@50": 0.526667,
+        "hit@100": 0.58,
+        "hit@150": 0.61,
+        "hit@200": 0.643333,
+        "hit@300": 0.673333,
+        "hit@500": 0.696667
+      },
+      "0.02": {
+        "hit@50": 0.54,
+        "hit@100": 0.583333,
+        "hit@150": 0.623333,
+        "hit@200": 0.66,
+        "hit@300": 0.67,
+        "hit@500": 0.696667
+      },
+      "0.03": {
+        "hit@50": 0.54,
+        "hit@100": 0.58,
+        "hit@150": 0.63,
+        "hit@200": 0.663333,
+        "hit@300": 0.68,
+        "hit@500": 0.696667
+      },
+      "0.05": {
+        "hit@50": 0.54,
+        "hit@100": 0.586667,
+        "hit@150": 0.623333,
+        "hit@200": 0.653333,
+        "hit@300": 0.683333,
+        "hit@500": 0.696667
+      },
+      "0.07": {
+        "hit@50": 0.53,
+        "hit@100": 0.58,
+        "hit@150": 0.62,
+        "hit@200": 0.64,
+        "hit@300": 0.683333,
+        "hit@500": 0.696667
+      },
+      "0.1": {
+        "hit@50": 0.516667,
+        "hit@100": 0.57,
+        "hit@150": 0.613333,
+        "hit@200": 0.633333,
+        "hit@300": 0.676667,
+        "hit@500": 0.696667
+      },
+      "0.15": {
+        "hit@50": 0.503333,
+        "hit@100": 0.55,
+        "hit@150": 0.6,
+        "hit@200": 0.62,
+        "hit@300": 0.666667,
+        "hit@500": 0.696667
+      },
+      "0.2": {
+        "hit@50": 0.496667,
+        "hit@100": 0.536667,
+        "hit@150": 0.583333,
+        "hit@200": 0.613333,
+        "hit@300": 0.66,
+        "hit@500": 0.696667
+      }
+    }
+  },
+  "pair_metrics": {
+    "pair_auc": 0.8390281846933202,
+    "average_precision": 0.15734836293726345
+  }
+}

@@ -1,0 +1,140 @@
+{
+  "train_candidates": "experiments/lightgbm_candidate_ranker/candidates/graphrag_semantic_edges_v2_top500_train_candidates.jsonl",
+  "val_candidates": "experiments/graphrag_bge_rerank/candidates/graphrag_semantic_edges_v2_top500_val_candidates.jsonl",
+  "top_in": 500,
+  "top_outs": [
+    50,
+    100,
+    150,
+    200,
+    300,
+    500
+  ],
+  "residual_alphas": [
+    0.0,
+    0.01,
+    0.02,
+    0.03,
+    0.05,
+    0.07,
+    0.1,
+    0.15,
+    0.2
+  ],
+  "graph_prior": "rank_log",
+  "feature_count": 28,
+  "train_summary": {
+    "groups": 30918,
+    "hit_groups": 22924,
+    "missed_groups": 7994,
+    "rows": 2047679,
+    "positives": 22924,
+    "negatives": 2024755
+  },
+  "model": {
+    "type": "sklearn.HistGradientBoostingClassifier",
+    "max_iter": 300,
+    "learning_rate": 0.05,
+    "max_leaf_nodes": 31,
+    "l2_regularization": 0.05,
+    "n_iter": 300
+  },
+  "coverage": {
+    "rows": 3959,
+    "graph_hit@50": 0.572114,
+    "graph_hit@100": 0.624653,
+    "graph_hit@150": 0.653448,
+    "graph_hit@200": 0.675676,
+    "graph_hit@300": 0.710533,
+    "graph_hit@500": 0.74539,
+    "learned_hit@50": 0.576408,
+    "learned_hit@100": 0.640313,
+    "learned_hit@150": 0.669614,
+    "learned_hit@200": 0.691589,
+    "learned_hit@300": 0.721647,
+    "learned_hit@500": 0.74539,
+    "source_hit@top_in": 0.74539,
+    "learned_retained_any_rank": 0.74539,
+    "rank_delta_mean": -6.98,
+    "rank_delta_improved": 841,
+    "rank_delta_worse": 1083,
+    "residual_alphas": {
+      "0.0": {
+        "hit@50": 0.572114,
+        "hit@100": 0.624653,
+        "hit@150": 0.653448,
+        "hit@200": 0.675676,
+        "hit@300": 0.710533,
+        "hit@500": 0.74539
+      },
+      "0.01": {
+        "hit@50": 0.585501,
+        "hit@100": 0.638798,
+        "hit@150": 0.669108,
+        "hit@200": 0.691841,
+        "hit@300": 0.720889,
+        "hit@500": 0.74539
+      },
+      "0.02": {
+        "hit@50": 0.58828,
+        "hit@100": 0.645618,
+        "hit@150": 0.677696,
+        "hit@200": 0.697398,
+        "hit@300": 0.721647,
+        "hit@500": 0.74539
+      },
+      "0.03": {
+        "hit@50": 0.589038,
+        "hit@100": 0.648901,
+        "hit@150": 0.680222,
+        "hit@200": 0.699166,
+        "hit@300": 0.722657,
+        "hit@500": 0.74539
+      },
+      "0.05": {
+        "hit@50": 0.58727,
+        "hit@100": 0.652437,
+        "hit@150": 0.683506,
+        "hit@200": 0.70144,
+        "hit@300": 0.723668,
+        "hit@500": 0.74539
+      },
+      "0.07": {
+        "hit@50": 0.58727,
+        "hit@100": 0.652943,
+        "hit@150": 0.683506,
+        "hit@200": 0.700429,
+        "hit@300": 0.724425,
+        "hit@500": 0.74539
+      },
+      "0.1": {
+        "hit@50": 0.584238,
+        "hit@100": 0.653195,
+        "hit@150": 0.680727,
+        "hit@200": 0.699166,
+        "hit@300": 0.72392,
+        "hit@500": 0.74539
+      },
+      "0.15": {
+        "hit@50": 0.581965,
+        "hit@100": 0.647133,
+        "hit@150": 0.675423,
+        "hit@200": 0.694872,
+        "hit@300": 0.724425,
+        "hit@500": 0.74539
+      },
+      "0.2": {
+        "hit@50": 0.576408,
+        "hit@100": 0.640313,
+        "hit@150": 0.669614,
+        "hit@200": 0.691589,
+        "hit@300": 0.721647,
+        "hit@500": 0.74539
+      }
+    }
+  },
+  "pair_metrics": {
+    "pair_auc": 0.8767611495316633,
+    "average_precision": 0.2144412806003383
+  }
+}
