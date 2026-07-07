@@ -113,16 +113,17 @@ def compress_raw_text(
 
 
 def rebuild_input_text(row: Dict[str, Any], compressed_raw: str) -> str:
-    return "\n\n".join(
-        [
-            "[VIEW=RAW_SEM_COMPACT]",
-            compressed_raw,
-            "[VIEW=REFINED source=full]",
-            str(row.get("refined_text") or "").strip(),
-            "[VIEW=GRAPH_RAG]",
-            str(row.get("graph_text") or "").strip(),
-        ]
-    )
+    parts = [
+        "[VIEW=RAW_SEM_COMPACT]",
+        compressed_raw,
+        "[VIEW=REFINED source=full]",
+        str(row.get("refined_text") or "").strip(),
+    ]
+    user_semantic_profile = str(row.get("user_semantic_profile") or "").strip()
+    if user_semantic_profile:
+        parts.extend(["[VIEW=USER_SEMANTIC_PROFILE source=preference_evidence]", user_semantic_profile])
+    parts.extend(["[VIEW=GRAPH_RAG]", str(row.get("graph_text") or "").strip()])
+    return "\n\n".join(parts)
 
 
 def percentile(values: List[int], q: float) -> float:

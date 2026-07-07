@@ -1,0 +1,58 @@
+# Semantic Profile v1 Sample
+
+sample_id: NewYork-train-000001
+tokens_without_specials: 724
+
+```text
+[TASK=CANDIDATE_RERANK]
+
+Estimate whether the POI hypothesis matches the user's next check-in.
+
+[RECENT_CONTEXT]
+
+[ROUTE=RAW_SEM_COMPACT]
+Task: predict the next POI in NewYork.
+SemCode=CATEGORY@lat,lon#local; @UNK means missing coordinates.
+
+Trajectory:
+1. v25004|HOTEL@40.70,-74.01#P0001|Tue|s23
+
+Transitions:
+- v14177|OFFICE@40.70,-74.01#P0002|src=same_last_poi|c1
+- v32521|PROFESSIONAL_OTHER_PLACES@40.75,-73.99#P0001|src=same_last_poi|c1
+- v112|NEW_AMERICAN_RESTAURANT@40.72,-73.99#P0001|src=same_last_poi|c1
+- v5983|DINER@40.71,-74.01#P0001|src=same_last_poi|c1
+
+Nearby:
+- v10948|DRUGSTORE@40.70,-74.01#P0001|d=0.053km
+- v5629|MEXICAN_RESTAURANT@40.70,-74.01#P0002|d=0.066km
+- v6169|COFFEE_SHOP@40.70,-74.01#P0003|d=0.073km
+- v45227|SALAD_PLACE@40.70,-74.01#P0001|d=0.075km
+
+[USER_SEMANTIC_PROFILE]
+
+history_count=3
+
+Long-term category affinity:
+1. HOTEL|category=Hotel|visits=1
+2. OFFICE|category=Office|visits=1
+3. COFFEE_SHOP|category=Coffee Shop|visits=1
+
+Revisit affinity:
+1. v25004|semantic_id=NYC::HOTEL::LAT40_70_LON_74_01::P0001|category=Hotel|geo=LAT40_70_LON_74_01|visits=1
+2. v14177|semantic_id=NYC::OFFICE::LAT40_70_LON_74_01::P0002|category=Office|geo=LAT40_70_LON_74_01|visits=1
+3. v6525|semantic_id=NYC::COFFEE_SHOP::LAT40_71_LON_74_01::P0005|category=Coffee Shop|geo=LAT40_71_LON_74_01|visits=1
+
+Geo routine:
+1. geo=LAT40_70_LON_74_01|visits=2|categories=Hotel,Office
+2. geo=LAT40_71_LON_74_01|visits=1|categories=Coffee Shop
+
+Temporal routine:
+1. slot=s35
+2. slot=s38
+3. slot=s41
+
+[POI_HYPOTHESIS]
+
+id=v1465; semantic_id=NYC::TRAIN_STATION::LAT40_75_LON_73_99::P0001; category=Train Station; geo_cell=LAT40_75_LON_73_99; coord=40.7502,-73.9927
+```

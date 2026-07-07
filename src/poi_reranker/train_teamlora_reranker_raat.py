@@ -43,6 +43,7 @@ def parse_args() -> argparse.Namespace:
     p.add_argument("--top-k", type=int, default=100)
     p.add_argument("--max-length", type=int, default=1024)
     p.add_argument("--expert-mode", choices=["anonymous", "named"], default="anonymous")
+    p.add_argument("--input-template", choices=["legacy", "semantic_profile_v1"], default="legacy")
     p.add_argument("--train-negatives", type=int, default=31)
     p.add_argument("--hard-negatives", type=int, default=16, help="Prefer negatives from top ranks.")
     p.add_argument("--eval-top-k", type=int, default=100)
@@ -174,7 +175,54 @@ def format_refine_text(group: Dict[str, Any], candidate: Dict[str, Any]) -> str:
     )
 
 
-def format_anonymous_text(group: Dict[str, Any], candidate: Dict[str, Any], view: str = "clean") -> str:
+def strip_preference_section(text: Any) -> str:
+    lines = str(text or "").splitlines()
+    out: List[str] = []
+    skipping = False
+    for line in lines:
+        stripped = line.strip()
+        if stripped == "Preference:":
+            skipping = True
+            continue
+        if skipping and stripped in {"Trajectory:", "Transitions:", "Nearby:"}:
+            skipping = False
+        if not skipping:
+            out.append(line)
+    return "\n".join(out).strip()
+
+
+def format_semantic_profile_text(group: Dict[str, Any], candidate: Dict[str, Any]) -> str:
+    hypothesis = str(candidate.get("candidate_hypothesis_text") or "").strip()
+    if not hypothesis:
+        hypothesis = (
+            f"id={candidate.get('poi_id')}; semantic_id={candidate.get('semantic_id')}; "
+            f"category={candidate.get('category')}; geo_cell={candidate.get('geo_cell')}"
+        )
+    profile = str(group.get("user_semantic_profile") or "").strip()
+    if not profile:
+        profile = "Long-term category affinity:\n- none\n\nRevisit affinity:\n- none\n\nGeo routine:\n- none\n\nTemporal routine:\n- none_available"
+    return "\n\n".join(
+        [
+            "[TASK=CANDIDATE_RERANK]",
+            "Estimate whether the POI hypothesis matches the user's next check-in.",
+            "[RECENT_CONTEXT]",
+            strip_preference_section(group.get("pref_text")),
+            "[USER_SEMANTIC_PROFILE]",
+            profile,
+            "[POI_HYPOTHESIS]",
+            hypothesis,
+        ]
+    )
+
+
+def format_anonymous_text(
+    group: Dict[str, Any],
+    candidate: Dict[str, Any],
+    view: str = "clean",
+    input_template: str = "legacy",
+) -> str:
+    if input_template == "semantic_profile_v1":
+        return format_semantic_profile_text(group, candidate)
     if view == "target_mask":
         graph_evidence = "Graph evidence is target-masked for adversarial robustness."
     elif view == "target_demote":
@@ -209,6 +257,7 @@ class RerankerGroupDataset(Dataset):
     hardneg_promote_topn: int = 3
     hardneg_score_boost: float = 2.0
     eval_candidate_limit: int | None = None
+    input_template: str = "legacy"
 
     def __len__(self) -> int:
         return len(self.groups)
@@ -258,12 +307,36 @@ class RerankerGroupDataset(Dataset):
             graph_texts_hardneg = [format_graph_text(group, c, masked=False) for c in selected]
             refine_texts = [format_refine_text(group, c) for c in selected]
         else:
-            pref_texts = [format_anonymous_text(group, c, view="clean") for c in selected]
-            graph_texts = [format_anonymous_text(group, c, view="clean") for c in selected]
-            graph_texts_masked = [format_anonymous_text(group, c, view="target_mask" if int(c.get("label") or 0) == 1 else "clean") for c in selected]
-            graph_texts_demote = [format_anonymous_text(group, c, view="target_demote" if int(c.get("label") or 0) == 1 else "clean") for c in selected]
-            graph_texts_hardneg = [format_anonymous_text(group, c, view="hardneg_promote" if c.get("poi_id") in hardneg_ids else "clean") for c in selected]
-            refine_texts = [format_anonymous_text(group, c, view="clean") for c in selected]
+            pref_texts = [format_anonymous_text(group, c, view="clean", input_template=self.input_template) for c in selected]
+            graph_texts = [format_anonymous_text(group, c, view="clean", input_template=self.input_template) for c in selected]
+            graph_texts_masked = [
+                format_anonymous_text(
+                    group,
+                    c,
+                    view="target_mask" if int(c.get("label") or 0) == 1 else "clean",
+                    input_template=self.input_template,
+                )
+                for c in selected
+            ]
+            graph_texts_demote = [
+                format_anonymous_text(
+                    group,
+                    c,
+                    view="target_demote" if int(c.get("label") or 0) == 1 else "clean",
+                    input_template=self.input_template,
+                )
+                for c in selected
+            ]
+            graph_texts_hardneg = [
+                format_anonymous_text(
+                    group,
+                    c,
+                    view="hardneg_promote" if c.get("poi_id") in hardneg_ids else "clean",
+                    input_template=self.input_template,
+                )
+                for c in selected
+            ]
+            refine_texts = [format_anonymous_text(group, c, view="clean", input_template=self.input_template) for c in selected]
         demote_features = []
         hardneg_features = []
         for candidate in selected:
@@ -758,6 +831,7 @@ def main() -> None:
         target_demote_score_scale=args.target_demote_score_scale,
         hardneg_promote_topn=args.hardneg_promote_topn,
         hardneg_score_boost=args.hardneg_score_boost,
+        input_template=args.input_template,
     )
     val_ds = RerankerGroupDataset(
         val_groups,
@@ -770,6 +844,7 @@ def main() -> None:
         hardneg_promote_topn=args.hardneg_promote_topn,
         hardneg_score_boost=args.hardneg_score_boost,
         eval_candidate_limit=args.eval_candidate_limit,
+        input_template=args.input_template,
     )
     train_loader = DataLoader(train_ds, batch_size=args.batch_groups, shuffle=True, collate_fn=collate_groups, num_workers=args.num_workers)
     val_loader = DataLoader(val_ds, batch_size=1, shuffle=False, collate_fn=collate_groups, num_workers=args.num_workers)

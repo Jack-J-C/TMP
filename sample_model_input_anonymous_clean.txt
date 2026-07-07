@@ -1,0 +1,166 @@
+# One Typical Training Sample Input
+
+This file shows the exact anonymous clean prompt shape used by src/poi_reranker/train_teamlora_reranker_raat.py.
+Current anonymous mode feeds the same prompt template to pref/graph/refine experts; the experts differ by LoRA weights, not by text.
+
+## Group Metadata
+sample_id: NewYork-train-000000
+split: train
+target_poi_id: v6525
+target_category: Coffee Shop
+target_in_candidates: True
+target_rank: 41
+refined_confidence: high
+refined_useful: yes
+candidate_count: 100
+
+## Token Lengths
+positive_prompt_tokens_without_specials: 646
+top_negative_prompt_tokens_without_specials: 638
+pref_text_raw_query_tokens_without_specials: 358
+refine_text_tokens_without_specials: 147
+positive_candidate_text_tokens_without_specials: 104
+
+## Positive Candidate Metadata
+{
+  "poi_id": "v6525",
+  "rank": 41,
+  "score": 2410.75,
+  "sources": [
+    "legacy_candidate",
+    "same_last_poi",
+    "semantic_category:Coffee Shop",
+    "semantic_token:COFFEE_SHOP"
+  ],
+  "semantic_id": "NYC::COFFEE_SHOP::LAT40_71_LON_74_01::P0005",
+  "category": "Coffee Shop",
+  "geo_cell": "LAT40_71_LON_74_01",
+  "label": 1,
+  "graph_features": [
+    0.267546386419054,
+    0.7788107904050663,
+    0.41,
+    0.0,
+    1.0,
+    0.0,
+    1.0,
+    1.0
+  ]
+}
+
+## Positive Candidate Anonymous Clean Prompt
+```text
+[TASK=CANDIDATE_RERANK]
+
+Score whether the candidate POI is the next location.
+
+[QUERY]
+
+[ROUTE=RAW_SEM_COMPACT]
+Task: predict the next POI in NewYork.
+SemCode=CATEGORY@lat,lon#local; @UNK means missing coordinates.
+
+Trajectory:
+1. v25004|HOTEL@40.70,-74.01#P0001|Mon|s35
+2. v14177|OFFICE@40.70,-74.01#P0002|Mon|s38|+75m
+
+Transitions:
+- v822|PARK@40.70,-74.01#P0002|src=same_last_poi|c7
+- v10948|DRUGSTORE@40.70,-74.01#P0001|src=same_last_poi|c2
+- v10947|METRO_STATION@40.70,-74.01#P0001|src=same_last_poi|c2
+- v14177|OFFICE@40.70,-74.01#P0002|src=same_last_poi|c2
+
+Nearby:
+- v45227|SALAD_PLACE@40.70,-74.01#P0001|d=0.031km
+- v40883|BAR@40.70,-74.01#P0003|d=0.044km
+- v244|AMERICAN_RESTAURANT@40.70,-74.01#P0001|d=0.051km
+- v41593|COCKTAIL_BAR@40.70,-74.01#P0001|d=0.077km
+
+Preference:
+hist=0
+top_categories:
+- none
+revisited_pois:
+- none
+
+[REFINED_EVIDENCE]
+
+Evidence verdict: useful_for_refinement=yes; confidence=high. Priority hypotheses: 1. category=Office; evidence=history; reason: user frequently visits Office (11 times) and last POI is Office, suggesting continuation. 2. category=Park; evidence=transition; reason: Park is top transition from Office (7 times) and also appears in nearby POIs. 3. category=Train Station; evidence=transition; reason: high transition count (46) from Office category, indicating a common next stop. Weak or noisy cues: nearby Bar, Coffee Shop, Mexican Restaurant (low count. Final hint: prefer history because user's strong Office preference and repeated visits dominate over sparse transition and geo cues.
+
+[CANDIDATE]
+
+Candidate POI: v6525|semantic_id=NYC::COFFEE_SHOP::LAT40_71_LON_74_01::P0005|category=Coffee Shop|geo=LAT40_71_LON_74_01|coord=40.7052,-74.0113
+Graph evidence: rank=41; score=2410.7500; sources=legacy_candidate,same_last_poi,semantic_category:Coffee Shop,semantic_token:COFFEE_SHOP
+```
+
+## Top Negative Candidate Metadata
+{
+  "poi_id": "v1465",
+  "rank": 1,
+  "score": 7710.4,
+  "sources": [
+    "legacy_candidate",
+    "same_last_category",
+    "graph_last_category",
+    "semantic_edge:last_category_token"
+  ],
+  "semantic_id": "NYC::TRAIN_STATION::LAT40_75_LON_73_99::P0001",
+  "category": "Train Station",
+  "geo_cell": "LAT40_75_LON_73_99",
+  "label": 0,
+  "graph_features": [
+    1.4426950408889634,
+    0.8950455032433865,
+    0.01,
+    0.0,
+    1.0,
+    0.0,
+    1.0,
+    1.0
+  ]
+}
+
+## Top Negative Candidate Anonymous Clean Prompt
+```text
+[TASK=CANDIDATE_RERANK]
+
+Score whether the candidate POI is the next location.
+
+[QUERY]
+
+[ROUTE=RAW_SEM_COMPACT]
+Task: predict the next POI in NewYork.
+SemCode=CATEGORY@lat,lon#local; @UNK means missing coordinates.
+
+Trajectory:
+1. v25004|HOTEL@40.70,-74.01#P0001|Mon|s35
+2. v14177|OFFICE@40.70,-74.01#P0002|Mon|s38|+75m
+
+Transitions:
+- v822|PARK@40.70,-74.01#P0002|src=same_last_poi|c7
+- v10948|DRUGSTORE@40.70,-74.01#P0001|src=same_last_poi|c2
+- v10947|METRO_STATION@40.70,-74.01#P0001|src=same_last_poi|c2
+- v14177|OFFICE@40.70,-74.01#P0002|src=same_last_poi|c2
+
+Nearby:
+- v45227|SALAD_PLACE@40.70,-74.01#P0001|d=0.031km
+- v40883|BAR@40.70,-74.01#P0003|d=0.044km
+- v244|AMERICAN_RESTAURANT@40.70,-74.01#P0001|d=0.051km
+- v41593|COCKTAIL_BAR@40.70,-74.01#P0001|d=0.077km
+
+Preference:
+hist=0
+top_categories:
+- none
+revisited_pois:
+- none
+
+[REFINED_EVIDENCE]
+
+Evidence verdict: useful_for_refinement=yes; confidence=high. Priority hypotheses: 1. category=Office; evidence=history; reason: user frequently visits Office (11 times) and last POI is Office, suggesting continuation. 2. category=Park; evidence=transition; reason: Park is top transition from Office (7 times) and also appears in nearby POIs. 3. category=Train Station; evidence=transition; reason: high transition count (46) from Office category, indicating a common next stop. Weak or noisy cues: nearby Bar, Coffee Shop, Mexican Restaurant (low count. Final hint: prefer history because user's strong Office preference and repeated visits dominate over sparse transition and geo cues.
+
+[CANDIDATE]
+
+Candidate POI: v1465|semantic_id=NYC::TRAIN_STATION::LAT40_75_LON_73_99::P0001|category=Train Station|geo=LAT40_75_LON_73_99|coord=40.7502,-73.9927
+Graph evidence: rank=1; score=7710.4000; sources=legacy_candidate,same_last_category,graph_last_category,semantic_edge:last_category_token
+```

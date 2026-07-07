@@ -35,6 +35,7 @@ def parse_args() -> argparse.Namespace:
     p.add_argument("--top-k", type=int, default=None)
     p.add_argument("--max-length", type=int, default=None)
     p.add_argument("--expert-mode", choices=["anonymous", "named"], default=None)
+    p.add_argument("--input-template", choices=["legacy", "semantic_profile_v1"], default=None)
     p.add_argument("--val-hit-only", action="store_true")
     p.add_argument("--max-val-groups", type=int, default=None)
     p.add_argument("--eval-candidate-limit", type=int, default=None)
@@ -79,6 +80,7 @@ def main() -> None:
     top_k = int(metadata_value(args, metadata, "top_k", 100))
     max_length = int(metadata_value(args, metadata, "max_length", 512))
     expert_mode = str(metadata_value(args, metadata, "expert_mode", "anonymous"))
+    input_template = str(metadata_value(args, metadata, "input_template", "legacy"))
     attn_impl = args.attn_implementation or metadata.get("attn_implementation")
 
     if val_groups_path:
@@ -142,6 +144,7 @@ def main() -> None:
         hardneg_promote_topn=int(metadata.get("hardneg_promote_topn", 3)),
         hardneg_score_boost=float(metadata.get("hardneg_score_boost", 2.0)),
         eval_candidate_limit=args.eval_candidate_limit,
+        input_template=input_template,
     )
     val_loader = DataLoader(val_ds, batch_size=1, shuffle=False, collate_fn=collate_groups, num_workers=0)
     eval_args = argparse.Namespace(max_length=max_length, eval_candidate_batch_size=args.eval_candidate_batch_size)

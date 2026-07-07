@@ -11,6 +11,7 @@ from __future__ import annotations
 
 import argparse
 import json
+import re
 from collections import Counter
 from pathlib import Path
 from typing import Any, Dict, Iterable, List, Tuple
@@ -57,6 +58,111 @@ def load_by_sample_id(path: Path) -> Dict[str, Dict[str, Any]]:
 
 def load_semantic_map(path: Path) -> Dict[str, Dict[str, Any]]:
     return {str(row["poi_id"]): row for row in read_jsonl(path)}
+
+
+def safe_int(value: Any, default: int = 0) -> int:
+    try:
+        return int(value)
+    except (TypeError, ValueError):
+        return default
+
+
+def norm_category_token(value: Any) -> str:
+    text = str(value or "CAT_UNK").strip().upper()
+    text = re.sub(r"[^A-Z0-9]+", "_", text).strip("_")
+    return text or "CAT_UNK"
+
+
+def category_token_lookup(semantic_map: Dict[str, Dict[str, Any]]) -> Dict[str, str]:
+    out: Dict[str, str] = {}
+    for row in semantic_map.values():
+        category = str(row.get("category") or "").strip()
+        token = str(row.get("category_token") or "").strip()
+        if category and token:
+            out.setdefault(category, token)
+    return out
+
+
+def common_slots_from_summary(summary: Any) -> List[str]:
+    text = str(summary or "")
+    match = re.search(r"Common local time slots are ([^.]+)", text)
+    if not match:
+        return []
+    slots: List[str] = []
+    for part in re.split(r"[,，]\s*", match.group(1).strip()):
+        part = part.strip()
+        if not part:
+            continue
+        if part.lower().startswith("s"):
+            part = part[1:]
+        if part.isdigit():
+            slots.append(f"s{int(part)}")
+    return slots
+
+
+def build_user_semantic_profile(
+    pref: Dict[str, Any] | None,
+    semantic_map: Dict[str, Dict[str, Any]],
+    category_tokens: Dict[str, str],
+    max_categories: int = 4,
+    max_revisited: int = 4,
+    max_geo: int = 3,
+    max_slots: int = 3,
+) -> str:
+    pref = pref or {}
+    history_count = safe_int(pref.get("history_count"))
+    lines: List[str] = [
+        f"history_count={history_count}",
+        "",
+        "Long-term category affinity:",
+    ]
+
+    top_categories = list(pref.get("top_categories") or [])[:max_categories]
+    if top_categories:
+        for idx, item in enumerate(top_categories, 1):
+            category = str(item.get("category") or item.get("value") or "Unknown")
+            count = safe_int(item.get("count"))
+            token = category_tokens.get(category) or norm_category_token(category)
+            lines.append(f"{idx}. {token}|category={category}|visits={count}")
+    else:
+        lines.append("- none")
+
+    lines.extend(["", "Revisit affinity:"])
+    revisited = list(pref.get("revisited_pois") or [])[:max_revisited]
+    geo_counts: Counter[str] = Counter()
+    geo_categories: Dict[str, Counter[str]] = {}
+    if revisited:
+        for idx, item in enumerate(revisited, 1):
+            poi_id = str(item.get("poi_id") or item.get("poi") or "")
+            count = safe_int(item.get("count"))
+            sem = semantic_map.get(poi_id) or {}
+            semantic_id = str(sem.get("semantic_id") or "SEM_UNK")
+            category = str(sem.get("category") or sem.get("category_token") or "CAT_UNK")
+            geo_cell = str(sem.get("geo_cell") or "GEO_UNK")
+            lines.append(f"{idx}. {poi_id}|semantic_id={semantic_id}|category={category}|geo={geo_cell}|visits={count}")
+            if geo_cell and geo_cell != "GEO_UNK":
+                geo_counts[geo_cell] += max(count, 1)
+                geo_categories.setdefault(geo_cell, Counter())[category] += max(count, 1)
+    else:
+        lines.append("- none")
+
+    lines.extend(["", "Geo routine:"])
+    if geo_counts:
+        for idx, (geo_cell, count) in enumerate(geo_counts.most_common(max_geo), 1):
+            cats = ",".join(cat for cat, _ in geo_categories.get(geo_cell, Counter()).most_common(3)) or "unknown"
+            lines.append(f"{idx}. geo={geo_cell}|visits={int(count)}|categories={cats}")
+    else:
+        lines.append("- none")
+
+    lines.extend(["", "Temporal routine:"])
+    slots = common_slots_from_summary(pref.get("preference_summary"))[:max_slots]
+    if slots:
+        for idx, slot in enumerate(slots, 1):
+            lines.append(f"{idx}. slot={slot}")
+    else:
+        lines.append("- none_available")
+
+    return "\n".join(lines)
 
 
 def compact_geo(row: Dict[str, Any]) -> Tuple[str, bool]:
@@ -135,6 +241,7 @@ def graph_candidate_features(row: Dict[str, Any], top_k: int) -> tuple[List[str]
 def split_paths(base_dir: Path, split: str) -> Dict[str, Path]:
     return {
         "raw": base_dir / "semantic_poi_sft" / f"stage1_{split}_raw_semantic.jsonl",
+        "preference": base_dir / "evidence" / f"preference_evidence_{split}.jsonl",
         "refined": base_dir / "refined_prompts_decision" / f"lora_a_decision_v2_{split}_full_outputs.jsonl",
         "graph": base_dir / "double_llm" / f"graphrag_semantic_edges_v2_top100_{split}_candidates.jsonl",
     }
@@ -142,14 +249,20 @@ def split_paths(base_dir: Path, split: str) -> Dict[str, Path]:
 
 def build_split(base_dir: Path, split: str, semantic_map: Dict[str, Dict[str, Any]], graph_top_k: int) -> tuple[List[Dict[str, Any]], Dict[str, Any]]:
     paths = split_paths(base_dir, split)
+    category_tokens = category_token_lookup(semantic_map)
+    preference_by_id = load_by_sample_id(paths["preference"])
     refined_by_id = load_by_sample_id(paths["refined"])
     graph_by_id = load_by_sample_id(paths["graph"])
     rows: List[Dict[str, Any]] = []
     counts = Counter()
     for raw in read_jsonl(paths["raw"]):
         sid = str(raw.get("sample_id") or "")
+        preference = preference_by_id.get(sid)
         refined = refined_by_id.get(sid)
         graph = graph_by_id.get(sid)
+        if preference is None:
+            counts["missing_preference"] += 1
+            continue
         if refined is None:
             counts["missing_refined"] += 1
             continue
@@ -163,6 +276,7 @@ def build_split(base_dir: Path, split: str, semantic_map: Dict[str, Dict[str, An
             continue
         raw_text = strip_generation_instructions(str(raw.get("input_prompt") or ""))
         refined_text = str(refined.get("distilled_prompt") or "").strip()
+        user_semantic_profile = build_user_semantic_profile(preference, semantic_map, category_tokens)
         graph_text = graph_view_text(graph, semantic_map, graph_top_k)
         graph_candidate_ids, graph_candidate_ranks, graph_candidate_scores = graph_candidate_features(graph, graph_top_k)
         target_rank = int(graph.get("target_rank") or 0)
@@ -173,6 +287,8 @@ def build_split(base_dir: Path, split: str, semantic_map: Dict[str, Dict[str, An
                 raw_text,
                 "[VIEW=REFINED source=full]",
                 refined_text,
+                "[VIEW=USER_SEMANTIC_PROFILE source=preference_evidence]",
+                user_semantic_profile,
                 "[VIEW=GRAPH_RAG]",
                 graph_text,
             ]
@@ -185,6 +301,7 @@ def build_split(base_dir: Path, split: str, semantic_map: Dict[str, Dict[str, An
                 "input_text": input_text,
                 "raw_text": raw_text,
                 "refined_text": refined_text,
+                "user_semantic_profile": user_semantic_profile,
                 "graph_text": graph_text,
                 "graph_candidate_poi_ids": graph_candidate_ids,
                 "graph_candidate_ranks": graph_candidate_ranks,

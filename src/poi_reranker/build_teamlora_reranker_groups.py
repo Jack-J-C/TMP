@@ -69,6 +69,18 @@ def semantic_text(row: Dict[str, Any] | None, poi_id: str) -> str:
     return f"{poi_id}|semantic_id={semantic_id}|category={category}|geo={geo_cell}|{coord}"
 
 
+def poi_hypothesis_text(row: Dict[str, Any] | None, poi_id: str) -> str:
+    if not row:
+        return f"id={poi_id}; semantic_id=SEM_UNK"
+    semantic_id = str(row.get("semantic_id") or "SEM_UNK")
+    category = str(row.get("category") or row.get("category_token") or "CAT_UNK")
+    geo_cell = str(row.get("geo_cell") or "GEO_UNK")
+    lat = row.get("latitude")
+    lon = row.get("longitude")
+    coord = "UNK" if lat is None or lon is None else f"{float(lat):.4f},{float(lon):.4f}"
+    return f"id={poi_id}; semantic_id={semantic_id}; category={category}; geo_cell={geo_cell}; coord={coord}"
+
+
 def clean_text(value: Any, max_chars: int | None = None) -> str:
     text = str(value or "").strip()
     if max_chars is not None and len(text) > max_chars:
@@ -113,6 +125,7 @@ def build_group(row: Dict[str, Any], semantic_map: Dict[str, Dict[str, Any]], to
                         f"Graph evidence: rank={rank}; score={score:.4f}; sources={','.join(sources) or 'unknown'}",
                     ]
                 ),
+                "candidate_hypothesis_text": poi_hypothesis_text(sem, poi_id),
                 "label": 1 if poi_id == target else 0,
             }
         )
@@ -128,6 +141,7 @@ def build_group(row: Dict[str, Any], semantic_map: Dict[str, Dict[str, Any]], to
         "refined_useful": row.get("refined_useful"),
         "pref_text": clean_text(row.get("raw_text"), max_chars=6000),
         "refine_text": clean_text(row.get("refined_text"), max_chars=2000),
+        "user_semantic_profile": clean_text(row.get("user_semantic_profile"), max_chars=3000),
         "graph_text": clean_text(row.get("graph_text"), max_chars=9000),
         "candidates": candidate_rows,
     }
