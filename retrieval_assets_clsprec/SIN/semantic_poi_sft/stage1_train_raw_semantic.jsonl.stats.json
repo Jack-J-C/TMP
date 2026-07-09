@@ -1,0 +1,24 @@
+{
+  "input": "retrieval_assets_clsprec/SIN/poi_sft/stage1_train_raw.jsonl",
+  "output": "retrieval_assets_clsprec/SIN/semantic_poi_sft/stage1_train_raw_semantic.jsonl",
+  "written": 4755,
+  "prompt_version": "raw_semantic_id_v1",
+  "candidate_limit": 0,
+  "candidate_semantic_limit": 0,
+  "counts": {
+    "trajectory_lines": 33219,
+    "transition_lines": 74892,
+    "nearby_lines": 76080,
+    "poi_geo_unk_mentions": 4499,
+    "candidate_sections_omitted": 4755,
+    "rows": 4755,
+    "input_chars": 20888399,
+    "output_chars": 13650615,
+    "rows_with_geo_unk": 4755,
+    "revisited_lines": 37949
+  },
+  "avg_input_chars": 4392.93,
+  "avg_output_chars": 2870.79,
+  "char_ratio": 0.653502,
+  "rows_with_geo_unk_ratio": 1.0
+}

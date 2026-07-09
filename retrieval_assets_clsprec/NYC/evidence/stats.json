@@ -1,0 +1,74 @@
+{
+  "city": "NYC",
+  "filtering": {
+    "train_pois_total": 7230,
+    "train_users_total": 820,
+    "allowed_train_pois": 7230,
+    "allowed_train_users": 820,
+    "train": {
+      "rows_before": 37468,
+      "rows_after_vocab_filter": 37468,
+      "rows_after_traj_filter": 37468,
+      "users": 820,
+      "pois": 7230,
+      "trajectories": 4502
+    },
+    "val": {
+      "rows_before": 4352,
+      "rows_after_vocab_filter": 3827,
+      "rows_after_traj_filter": 3822,
+      "users": 323,
+      "pois": 1943,
+      "trajectories": 579
+    },
+    "test": {
+      "rows_before": 6342,
+      "rows_after_vocab_filter": 5357,
+      "rows_after_traj_filter": 5338,
+      "users": 464,
+      "pois": 2431,
+      "trajectories": 884
+    }
+  },
+  "evidence": {
+    "train": {
+      "samples": 4502,
+      "files": {
+        "sequence": 4502,
+        "geo": 4502,
+        "preference": 4502,
+        "stage2": 4502
+      },
+      "target_candidate_recall": 0.7225677476677033,
+      "avg_candidates": 49.13527321190582,
+      "avg_history_count": 33.997334517992,
+      "avg_current_len": 7.32252332296757
+    },
+    "val": {
+      "samples": 579,
+      "files": {
+        "sequence": 579,
+        "geo": 579,
+        "preference": 579,
+        "stage2": 579
+      },
+      "target_candidate_recall": 0.7029360967184801,
+      "avg_candidates": 50.604490500863555,
+      "avg_history_count": 39.46804835924007,
+      "avg_current_len": 5.601036269430052
+    },
+    "test": {
+      "samples": 884,
+      "files": {
+        "sequence": 884,
+        "geo": 884,
+        "preference": 884,
+        "stage2": 884
+      },
+      "target_candidate_recall": 0.6877828054298643,
+      "avg_candidates": 49.97963800904977,
+      "avg_history_count": 36.1289592760181,
+      "avg_current_len": 5.038461538461538
+    }
+  }
+}

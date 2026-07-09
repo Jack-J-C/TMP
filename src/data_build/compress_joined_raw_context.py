@@ -31,7 +31,7 @@ def parse_args() -> argparse.Namespace:
     p = argparse.ArgumentParser(description="Compress joined topK parquet raw_text while keeping schema stable.")
     p.add_argument("--input-dir", type=Path, default=Path("retrieval_assets/NewYork/joined_poi_classification"))
     p.add_argument("--top-k", type=int, default=100)
-    p.add_argument("--splits", nargs="+", default=["train", "val"], choices=["train", "val"])
+    p.add_argument("--splits", nargs="+", default=["train", "val"], choices=["train", "val", "test"])
     p.add_argument("--backup-suffix", default="fullraw")
     p.add_argument("--trajectory-lines", type=int, default=8)
     p.add_argument("--transitions", type=int, default=4)
@@ -122,6 +122,9 @@ def rebuild_input_text(row: Dict[str, Any], compressed_raw: str) -> str:
     user_semantic_profile = str(row.get("user_semantic_profile") or "").strip()
     if user_semantic_profile:
         parts.extend(["[VIEW=USER_SEMANTIC_PROFILE source=preference_evidence]", user_semantic_profile])
+    similar_user_semantic_profile = str(row.get("similar_user_semantic_profile") or "").strip()
+    if similar_user_semantic_profile:
+        parts.extend(["[VIEW=SIMILAR_USER_SEMANTIC_PROFILE source=bge_m3_user_knn]", similar_user_semantic_profile])
     parts.extend(["[VIEW=GRAPH_RAG]", str(row.get("graph_text") or "").strip()])
     return "\n\n".join(parts)
 
@@ -175,7 +178,9 @@ def compress_split(args: argparse.Namespace, split: str, tokenizer: Any) -> Dict
     main_stats = args.input_dir / f"{split}_joined_top{args.top_k}.stats.json"
     backup_stats = args.input_dir / f"{split}_joined_top{args.top_k}_{args.backup_suffix}.stats.json"
 
-    if backup_path.exists():
+    if backup_path.exists() and main_path.exists() and main_path.stat().st_mtime > backup_path.stat().st_mtime:
+        source_path = main_path
+    elif backup_path.exists():
         source_path = backup_path
     else:
         if not main_path.exists():

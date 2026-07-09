@@ -1,0 +1,87 @@
+city=TKY
+split=train
+sample_id=TKY-train-000000
+user_id=10
+target_poi_id=v1969
+target_rank=40
+target_in_candidates=True
+user_profile_insufficient=True
+similar_user_profile_has_signal=True
+similar_profile_injected=True
+candidate_poi_id=v1969
+candidate_label=1
+model_input_tokens_llama=901
+
+----- MODEL INPUT BEGIN -----
+[TASK=CANDIDATE_RERANK]
+
+Estimate whether the POI hypothesis matches the user's next check-in.
+
+[RECENT_CONTEXT]
+
+[ROUTE=RAW_SEM_COMPACT]
+Task: predict the next POI in TKY.
+SemCode=CATEGORY@lat,lon#local; @UNK means missing coordinates.
+
+Trajectory:
+1. v1185|BURGER_JOINT@35.69,139.70#P0001|Sun|s10
+2. v43|TRAIN_STATION@35.69,139.70#P0016|Sun|s10|+8m
+3. v1434|TRAIN_STATION@35.69,139.70#P0001|Sun|s10|+3m
+4. v504|TRAIN_STATION@35.67,139.50#P0001|Sun|s12|+50m
+5. v1339|TRAIN_STATION@35.67,139.49#P0001|Sun|s12|+7m
+6. v942|RACETRACK@35.66,139.49#P0001|Sun|s27|+441m
+7. v898|TRAIN_STATION@35.67,139.48#P0006|Sun|s33|+178m
+
+Transitions:
+- v893|TRAIN_STATION@35.67,139.48#P0005|src=same_last_poi|c12
+- v6711|TRAIN_STATION@35.67,139.48#P0003|src=same_last_poi|c5
+- v4943|TRAIN_STATION@35.67,139.48#P0001|src=same_last_poi|c3
+- v4279|TRAIN_STATION@35.58,139.66#P0003|src=same_last_poi|c2
+- v940|TRAIN_STATION@35.64,139.50#P0002|src=same_last_poi|c2
+- v409|TRAIN_STATION@35.65,139.49#P0001|src=same_last_poi|c2
+
+Nearby:
+- v4943|TRAIN_STATION@35.67,139.48#P0001|d=0.017km
+- v4944|TRAIN_STATION@35.67,139.48#P0002|d=0.027km
+- v6167|BOWLING_ALLEY@35.67,139.48#P0001|d=0.110km
+- v1728|SHRINE@35.67,139.48#P0001|d=0.219km
+- v4988|ARCADE@UNK#P0001|geo=unk|d=0.499km
+- v2751|MALL@35.67,139.48#P0001|d=0.521km
+
+[USER_SEMANTIC_PROFILE]
+
+history_count=0
+
+Long-term category affinity:
+- none
+
+Revisit affinity:
+- none
+
+Geo routine:
+- none
+
+Temporal routine:
+- none_available
+
+[SIMILAR_USER_SEMANTIC_PROFILE]
+
+source=bge_m3_user_knn;k=20;support_users=17;support_neighbors=20
+
+Long-term category affinity:
+1. TRAIN_STATION|category=Train Station|visits=28|support=54.55
+2. TRAIN_STATION|category=Train Station|visits=27|support=52.48
+
+Revisit affinity:
+1. category=Train Station|geo=LAT35_69_LON139_70|support=36.00
+
+Geo routine:
+1. geo=LAT35_65_LON139_75|visits=7|categories=Subway|support=13.62
+
+Temporal routine:
+1. slot=s16|support=5.84
+
+[POI_HYPOTHESIS]
+
+id=v1969; semantic_id=TKY::TRAIN_STATION::LAT35_85_LON139_65::P0001; category=Train Station; geo_cell=LAT35_85_LON139_65; coord=35.8457,139.6471
+----- MODEL INPUT END -----

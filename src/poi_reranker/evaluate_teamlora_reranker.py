@@ -35,7 +35,7 @@ def parse_args() -> argparse.Namespace:
     p.add_argument("--top-k", type=int, default=None)
     p.add_argument("--max-length", type=int, default=None)
     p.add_argument("--expert-mode", choices=["anonymous", "named"], default=None)
-    p.add_argument("--input-template", choices=["legacy", "semantic_profile_v1"], default=None)
+    p.add_argument("--input-template", choices=["legacy", "semantic_profile_v1", "semantic_profile_simuser_v1"], default=None)
     p.add_argument("--val-hit-only", action="store_true")
     p.add_argument("--max-val-groups", type=int, default=None)
     p.add_argument("--eval-candidate-limit", type=int, default=None)

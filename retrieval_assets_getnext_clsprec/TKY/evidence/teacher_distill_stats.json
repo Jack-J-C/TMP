@@ -1,0 +1,83 @@
+{
+  "city": "TKY",
+  "splits": {
+    "train": {
+      "samples": 12319,
+      "avg_candidates": 49.4008,
+      "max_candidates": 64,
+      "empty_candidates": 0,
+      "target_in_candidates": 10547,
+      "target_in_candidates_ratio": 0.856157,
+      "empty_geo": 0,
+      "empty_preference_history": 1159,
+      "empty_transition_candidates": 2,
+      "label_keys_removed": [
+        "answer",
+        "gold",
+        "gold_answer",
+        "label",
+        "target",
+        "target_category",
+        "target_poi",
+        "target_poi_id",
+        "true_next",
+        "true_next_poi",
+        "true_next_poi_id"
+      ],
+      "input_path": "retrieval_assets_getnext_clsprec/TKY/evidence/teacher_distill_inputs_train.jsonl",
+      "label_path": "retrieval_assets_getnext_clsprec/TKY/evidence/teacher_distill_labels_train.jsonl"
+    },
+    "val": {
+      "samples": 1568,
+      "avg_candidates": 50.8348,
+      "max_candidates": 64,
+      "empty_candidates": 0,
+      "target_in_candidates": 1328,
+      "target_in_candidates_ratio": 0.846939,
+      "empty_geo": 0,
+      "empty_preference_history": 0,
+      "empty_transition_candidates": 0,
+      "label_keys_removed": [
+        "answer",
+        "gold",
+        "gold_answer",
+        "label",
+        "target",
+        "target_category",
+        "target_poi",
+        "target_poi_id",
+        "true_next",
+        "true_next_poi",
+        "true_next_poi_id"
+      ],
+      "input_path": "retrieval_assets_getnext_clsprec/TKY/evidence/teacher_distill_inputs_val.jsonl",
+      "label_path": "retrieval_assets_getnext_clsprec/TKY/evidence/teacher_distill_labels_val.jsonl"
+    },
+    "test": {
+      "samples": 2236,
+      "avg_candidates": 50.9217,
+      "max_candidates": 64,
+      "empty_candidates": 0,
+      "target_in_candidates": 1864,
+      "target_in_candidates_ratio": 0.833631,
+      "empty_geo": 0,
+      "empty_preference_history": 0,
+      "empty_transition_candidates": 0,
+      "label_keys_removed": [
+        "answer",
+        "gold",
+        "gold_answer",
+        "label",
+        "target",
+        "target_category",
+        "target_poi",
+        "target_poi_id",
+        "true_next",
+        "true_next_poi",
+        "true_next_poi_id"
+      ],
+      "input_path": "retrieval_assets_getnext_clsprec/TKY/evidence/teacher_distill_inputs_test.jsonl",
+      "label_path": "retrieval_assets_getnext_clsprec/TKY/evidence/teacher_distill_labels_test.jsonl"
+    }
+  }
+}

@@ -1,0 +1,74 @@
+{
+  "city": "TKY",
+  "filtering": {
+    "train_pois_total": 6070,
+    "train_users_total": 1159,
+    "allowed_train_pois": 6070,
+    "allowed_train_users": 1159,
+    "train": {
+      "rows_before": 101124,
+      "rows_after_vocab_filter": 101124,
+      "rows_after_traj_filter": 101124,
+      "users": 1159,
+      "pois": 6070,
+      "trajectories": 12319
+    },
+    "val": {
+      "rows_before": 11425,
+      "rows_after_vocab_filter": 11264,
+      "rows_after_traj_filter": 11264,
+      "users": 795,
+      "pois": 3008,
+      "trajectories": 1568
+    },
+    "test": {
+      "rows_before": 16220,
+      "rows_after_vocab_filter": 15922,
+      "rows_after_traj_filter": 15922,
+      "users": 932,
+      "pois": 3431,
+      "trajectories": 2236
+    }
+  },
+  "evidence": {
+    "train": {
+      "samples": 12319,
+      "files": {
+        "sequence": 12319,
+        "geo": 12319,
+        "preference": 12319,
+        "stage2": 12319
+      },
+      "target_candidate_recall": 0.8561571556132803,
+      "avg_candidates": 49.400763048948775,
+      "avg_history_count": 38.174445977757934,
+      "avg_current_len": 7.208783180452959
+    },
+    "val": {
+      "samples": 1568,
+      "files": {
+        "sequence": 1568,
+        "geo": 1568,
+        "preference": 1568,
+        "stage2": 1568
+      },
+      "target_candidate_recall": 0.8469387755102041,
+      "avg_candidates": 50.83482142857143,
+      "avg_history_count": 43.04272959183673,
+      "avg_current_len": 6.183673469387755
+    },
+    "test": {
+      "samples": 2236,
+      "files": {
+        "sequence": 2236,
+        "geo": 2236,
+        "preference": 2236,
+        "stage2": 2236
+      },
+      "target_candidate_recall": 0.8336314847942755,
+      "avg_candidates": 50.92173524150268,
+      "avg_history_count": 42.46019677996422,
+      "avg_current_len": 6.120751341681574
+    }
+  }
+}

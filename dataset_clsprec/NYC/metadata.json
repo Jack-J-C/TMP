@@ -1,0 +1,36 @@
+{
+  "city": "NYC",
+  "source": "/mnt/data/users/yyl/TMP/raw_data/NYC",
+  "split_source": "TCPP pre-split train/validation/test files",
+  "protocol": "LLM4POI-style last-point trajectory prediction",
+  "filtering": {
+    "train_pois_total": 7230,
+    "train_users_total": 820,
+    "allowed_train_pois": 7230,
+    "allowed_train_users": 820,
+    "train": {
+      "rows_before": 37468,
+      "rows_after_vocab_filter": 37468,
+      "rows_after_traj_filter": 37468,
+      "users": 820,
+      "pois": 7230,
+      "trajectories": 4502
+    },
+    "val": {
+      "rows_before": 4352,
+      "rows_after_vocab_filter": 3827,
+      "rows_after_traj_filter": 3822,
+      "users": 323,
+      "pois": 1943,
+      "trajectories": 579
+    },
+    "test": {
+      "rows_before": 6342,
+      "rows_after_vocab_filter": 5357,
+      "rows_after_traj_filter": 5338,
+      "users": 464,
+      "pois": 2431,
+      "trajectories": 884
+    }
+  }
+}

@@ -1,0 +1,416 @@
+{
+  "NYC": {
+    "train": {
+      "path": "retrieval_assets_clsprec/NYC/joined_poi_classification/train_joined_top100.parquet",
+      "exists": true,
+      "rows": 4502,
+      "missing_columns": [],
+      "candidate_len_min": 100,
+      "candidate_len_max": 100,
+      "candidate_len_eq100": 4502,
+      "rank_len_matches_candidates": 4502,
+      "score_len_matches_candidates": 4502,
+      "hit100": 0.693025,
+      "target_rank_valid_when_hit": 4502,
+      "raw_compact_marker": 4502,
+      "input_has_user_profile_view": 4502,
+      "input_has_similar_profile_view": 4502,
+      "input_has_graph_view": 4502,
+      "build_group_ok_first50": "50/50",
+      "token_stats": {
+        "raw_text_before": {
+          "mean": 1469.76,
+          "p50": 1470.0,
+          "p90": 1715.0,
+          "p95": 1818.0,
+          "p99": 2037.96,
+          "max": 2687
+        },
+        "raw_text_after": {
+          "mean": 733.47,
+          "p50": 715.0,
+          "p90": 910.0,
+          "p95": 931.0,
+          "p99": 958.99,
+          "max": 990
+        },
+        "candidate_start_after": {
+          "mean": 770.47,
+          "p50": 752.0,
+          "p90": 947.0,
+          "p95": 968.0,
+          "p99": 995.99,
+          "max": 1027
+        }
+      }
+    },
+    "val": {
+      "path": "retrieval_assets_clsprec/NYC/joined_poi_classification/val_joined_top100.parquet",
+      "exists": true,
+      "rows": 579,
+      "missing_columns": [],
+      "candidate_len_min": 100,
+      "candidate_len_max": 100,
+      "candidate_len_eq100": 579,
+      "rank_len_matches_candidates": 579,
+      "score_len_matches_candidates": 579,
+      "hit100": 0.683938,
+      "target_rank_valid_when_hit": 579,
+      "raw_compact_marker": 579,
+      "input_has_user_profile_view": 579,
+      "input_has_similar_profile_view": 579,
+      "input_has_graph_view": 579,
+      "build_group_ok_first50": "50/50",
+      "token_stats": {
+        "raw_text_before": {
+          "mean": 1464.05,
+          "p50": 1456.0,
+          "p90": 1630.2,
+          "p95": 1716.0,
+          "p99": 1872.74,
+          "max": 2011
+        },
+        "raw_text_after": {
+          "mean": 711.22,
+          "p50": 692.0,
+          "p90": 856.6,
+          "p95": 902.1,
+          "p99": 937.22,
+          "max": 961
+        },
+        "candidate_start_after": {
+          "mean": 748.22,
+          "p50": 729.0,
+          "p90": 893.6,
+          "p95": 939.1,
+          "p99": 974.22,
+          "max": 998
+        }
+      }
+    },
+    "test": {
+      "path": "retrieval_assets_clsprec/NYC/joined_poi_classification/test_joined_top100.parquet",
+      "exists": true,
+      "rows": 884,
+      "missing_columns": [],
+      "candidate_len_min": 100,
+      "candidate_len_max": 100,
+      "candidate_len_eq100": 884,
+      "rank_len_matches_candidates": 884,
+      "score_len_matches_candidates": 884,
+      "hit100": 0.64819,
+      "target_rank_valid_when_hit": 884,
+      "raw_compact_marker": 884,
+      "input_has_user_profile_view": 884,
+      "input_has_similar_profile_view": 884,
+      "input_has_graph_view": 884,
+      "build_group_ok_first50": "50/50",
+      "token_stats": {
+        "raw_text_before": {
+          "mean": 1427.85,
+          "p50": 1431.0,
+          "p90": 1586.7,
+          "p95": 1652.85,
+          "p99": 1826.51,
+          "max": 2414
+        },
+        "raw_text_after": {
+          "mean": 692.87,
+          "p50": 674.0,
+          "p90": 817.0,
+          "p95": 881.85,
+          "p99": 931.0,
+          "max": 946
+        },
+        "candidate_start_after": {
+          "mean": 729.87,
+          "p50": 711.0,
+          "p90": 854.0,
+          "p95": 918.85,
+          "p99": 968.0,
+          "max": 983
+        }
+      }
+    },
+    "sample_output": {
+      "path": "reports/sample_model_inputs_semprofile_simuser_v2/nyc_train_target_candidate_model_input.txt",
+      "model_input_tokens_llama": 935
+    }
+  },
+  "SIN": {
+    "train": {
+      "path": "retrieval_assets_clsprec/SIN/joined_poi_classification/train_joined_top100.parquet",
+      "exists": true,
+      "rows": 4755,
+      "missing_columns": [],
+      "candidate_len_min": 100,
+      "candidate_len_max": 100,
+      "candidate_len_eq100": 4755,
+      "rank_len_matches_candidates": 4755,
+      "score_len_matches_candidates": 4755,
+      "hit100": 0.701788,
+      "target_rank_valid_when_hit": 4755,
+      "raw_compact_marker": 4755,
+      "input_has_user_profile_view": 4755,
+      "input_has_similar_profile_view": 4755,
+      "input_has_graph_view": 4755,
+      "build_group_ok_first50": "50/50",
+      "token_stats": {
+        "raw_text_before": {
+          "mean": 1450.36,
+          "p50": 1459.0,
+          "p90": 1653.0,
+          "p95": 1737.3,
+          "p99": 1927.46,
+          "max": 2178
+        },
+        "raw_text_after": {
+          "mean": 722.74,
+          "p50": 709.0,
+          "p90": 884.6,
+          "p95": 910.3,
+          "p99": 942.46,
+          "max": 1009
+        },
+        "candidate_start_after": {
+          "mean": 759.74,
+          "p50": 746.0,
+          "p90": 921.6,
+          "p95": 947.3,
+          "p99": 979.46,
+          "max": 1046
+        }
+      }
+    },
+    "val": {
+      "path": "retrieval_assets_clsprec/SIN/joined_poi_classification/val_joined_top100.parquet",
+      "exists": true,
+      "rows": 627,
+      "missing_columns": [],
+      "candidate_len_min": 100,
+      "candidate_len_max": 100,
+      "candidate_len_eq100": 627,
+      "rank_len_matches_candidates": 627,
+      "score_len_matches_candidates": 627,
+      "hit100": 0.728868,
+      "target_rank_valid_when_hit": 627,
+      "raw_compact_marker": 627,
+      "input_has_user_profile_view": 627,
+      "input_has_similar_profile_view": 627,
+      "input_has_graph_view": 627,
+      "build_group_ok_first50": "50/50",
+      "token_stats": {
+        "raw_text_before": {
+          "mean": 1460.92,
+          "p50": 1450.0,
+          "p90": 1600.2,
+          "p95": 1649.4,
+          "p99": 1834.72,
+          "max": 2096
+        },
+        "raw_text_after": {
+          "mean": 713.88,
+          "p50": 693.0,
+          "p90": 838.0,
+          "p95": 881.4,
+          "p99": 914.48,
+          "max": 947
+        },
+        "candidate_start_after": {
+          "mean": 750.88,
+          "p50": 730.0,
+          "p90": 875.0,
+          "p95": 918.4,
+          "p99": 951.48,
+          "max": 984
+        }
+      }
+    },
+    "test": {
+      "path": "retrieval_assets_clsprec/SIN/joined_poi_classification/test_joined_top100.parquet",
+      "exists": true,
+      "rows": 935,
+      "missing_columns": [],
+      "candidate_len_min": 100,
+      "candidate_len_max": 100,
+      "candidate_len_eq100": 935,
+      "rank_len_matches_candidates": 935,
+      "score_len_matches_candidates": 935,
+      "hit100": 0.685561,
+      "target_rank_valid_when_hit": 935,
+      "raw_compact_marker": 935,
+      "input_has_user_profile_view": 935,
+      "input_has_similar_profile_view": 935,
+      "input_has_graph_view": 935,
+      "build_group_ok_first50": "50/50",
+      "token_stats": {
+        "raw_text_before": {
+          "mean": 1435.23,
+          "p50": 1438.0,
+          "p90": 1568.6,
+          "p95": 1619.3,
+          "p99": 1786.24,
+          "max": 2020
+        },
+        "raw_text_after": {
+          "mean": 700.78,
+          "p50": 684.0,
+          "p90": 806.0,
+          "p95": 863.0,
+          "p99": 914.0,
+          "max": 945
+        },
+        "candidate_start_after": {
+          "mean": 737.78,
+          "p50": 721.0,
+          "p90": 843.0,
+          "p95": 900.0,
+          "p99": 951.0,
+          "max": 982
+        }
+      }
+    },
+    "sample_output": {
+      "path": "reports/sample_model_inputs_semprofile_simuser_v2/sin_train_target_candidate_model_input.txt",
+      "model_input_tokens_llama": 940
+    }
+  },
+  "TKY": {
+    "train": {
+      "path": "retrieval_assets_getnext_clsprec/TKY/joined_poi_classification/train_joined_top100.parquet",
+      "exists": true,
+      "rows": 12319,
+      "missing_columns": [],
+      "candidate_len_min": 100,
+      "candidate_len_max": 100,
+      "candidate_len_eq100": 12319,
+      "rank_len_matches_candidates": 12319,
+      "score_len_matches_candidates": 12319,
+      "hit100": 0.828233,
+      "target_rank_valid_when_hit": 12319,
+      "raw_compact_marker": 12319,
+      "input_has_user_profile_view": 12319,
+      "input_has_similar_profile_view": 12319,
+      "input_has_graph_view": 12319,
+      "build_group_ok_first50": "50/50",
+      "token_stats": {
+        "raw_text_before": {
+          "mean": 1466.82,
+          "p50": 1457.0,
+          "p90": 1650.0,
+          "p95": 1737.0,
+          "p99": 1939.82,
+          "max": 2610
+        },
+        "raw_text_after": {
+          "mean": 730.2,
+          "p50": 712.0,
+          "p90": 885.0,
+          "p95": 904.0,
+          "p99": 927.0,
+          "max": 998
+        },
+        "candidate_start_after": {
+          "mean": 767.2,
+          "p50": 749.0,
+          "p90": 922.0,
+          "p95": 941.0,
+          "p99": 964.0,
+          "max": 1035
+        }
+      }
+    },
+    "val": {
+      "path": "retrieval_assets_getnext_clsprec/TKY/joined_poi_classification/val_joined_top100.parquet",
+      "exists": true,
+      "rows": 1568,
+      "missing_columns": [],
+      "candidate_len_min": 100,
+      "candidate_len_max": 100,
+      "candidate_len_eq100": 1568,
+      "rank_len_matches_candidates": 1568,
+      "score_len_matches_candidates": 1568,
+      "hit100": 0.808673,
+      "target_rank_valid_when_hit": 1568,
+      "raw_compact_marker": 1568,
+      "input_has_user_profile_view": 1568,
+      "input_has_similar_profile_view": 1568,
+      "input_has_graph_view": 1568,
+      "build_group_ok_first50": "50/50",
+      "token_stats": {
+        "raw_text_before": {
+          "mean": 1461.55,
+          "p50": 1447.0,
+          "p90": 1592.3,
+          "p95": 1660.65,
+          "p99": 1826.32,
+          "max": 2162
+        },
+        "raw_text_after": {
+          "mean": 717.33,
+          "p50": 694.0,
+          "p90": 842.0,
+          "p95": 891.0,
+          "p99": 920.33,
+          "max": 943
+        },
+        "candidate_start_after": {
+          "mean": 754.33,
+          "p50": 731.0,
+          "p90": 879.0,
+          "p95": 928.0,
+          "p99": 957.33,
+          "max": 980
+        }
+      }
+    },
+    "test": {
+      "path": "retrieval_assets_getnext_clsprec/TKY/joined_poi_classification/test_joined_top100.parquet",
+      "exists": true,
+      "rows": 2236,
+      "missing_columns": [],
+      "candidate_len_min": 100,
+      "candidate_len_max": 100,
+      "candidate_len_eq100": 2236,
+      "rank_len_matches_candidates": 2236,
+      "score_len_matches_candidates": 2236,
+      "hit100": 0.772361,
+      "target_rank_valid_when_hit": 2236,
+      "raw_compact_marker": 2236,
+      "input_has_user_profile_view": 2236,
+      "input_has_similar_profile_view": 2236,
+      "input_has_graph_view": 2236,
+      "build_group_ok_first50": "50/50",
+      "token_stats": {
+        "raw_text_before": {
+          "mean": 1455.0,
+          "p50": 1440.0,
+          "p90": 1594.5,
+          "p95": 1669.25,
+          "p99": 1867.3,
+          "max": 2048
+        },
+        "raw_text_after": {
+          "mean": 713.16,
+          "p50": 689.0,
+          "p90": 838.0,
+          "p95": 891.0,
+          "p99": 915.3,
+          "max": 942
+        },
+        "candidate_start_after": {
+          "mean": 750.16,
+          "p50": 726.0,
+          "p90": 875.0,
+          "p95": 928.0,
+          "p99": 952.3,
+          "max": 979
+        }
+      }
+    },
+    "sample_output": {
+      "path": "reports/sample_model_inputs_semprofile_simuser_v2/tky_train_target_candidate_model_input.txt",
+      "model_input_tokens_llama": 901
+    }
+  }
+}

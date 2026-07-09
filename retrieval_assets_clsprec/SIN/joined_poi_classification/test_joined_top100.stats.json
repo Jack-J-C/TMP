@@ -1,0 +1,40 @@
+{
+  "split": "test",
+  "source": "retrieval_assets_clsprec/SIN/joined_poi_classification/test_joined_top100_fullraw.parquet",
+  "output": "retrieval_assets_clsprec/SIN/joined_poi_classification/test_joined_top100.parquet",
+  "rows": 935,
+  "policy": {
+    "trajectory_lines": 12,
+    "transitions": 6,
+    "nearby": 6,
+    "top_categories": 4,
+    "revisited_pois": 4
+  },
+  "bytes": 3098937,
+  "token_stats": {
+    "raw_text_before": {
+      "mean": 1435.23,
+      "p50": 1438.0,
+      "p90": 1568.6,
+      "p95": 1619.3,
+      "p99": 1786.24,
+      "max": 2020
+    },
+    "raw_text_after": {
+      "mean": 700.78,
+      "p50": 684.0,
+      "p90": 806.0,
+      "p95": 863.0,
+      "p99": 914.0,
+      "max": 945
+    },
+    "candidate_start_after": {
+      "mean": 737.78,
+      "p50": 721.0,
+      "p90": 843.0,
+      "p95": 900.0,
+      "p99": 951.0,
+      "max": 982
+    }
+  }
+}

@@ -1,0 +1,17 @@
+{
+  "input_rows": 884,
+  "output_rows": 884,
+  "route": "RAW",
+  "prompt_version": "raw_v2_no_user_no_date",
+  "counts": {
+    "route_raw": 884,
+    "quality_good": 883,
+    "target_in_candidates": 608,
+    "difficulty_many_candidates": 549,
+    "label_difficulty_target_not_in_candidates": 276,
+    "difficulty_short_context": 29,
+    "quality_partial": 1,
+    "difficulty_no_transition_candidates": 1
+  },
+  "written": 884
+}

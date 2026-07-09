@@ -1,0 +1,127 @@
+{
+  "top_k": 100,
+  "input_dir": "retrieval_assets_clsprec/NYC/joined_poi_classification",
+  "backup_suffix": "fullraw",
+  "splits": {
+    "train": {
+      "split": "train",
+      "source": "retrieval_assets_clsprec/NYC/joined_poi_classification/train_joined_top100_fullraw.parquet",
+      "output": "retrieval_assets_clsprec/NYC/joined_poi_classification/train_joined_top100.parquet",
+      "rows": 4502,
+      "policy": {
+        "trajectory_lines": 12,
+        "transitions": 6,
+        "nearby": 6,
+        "top_categories": 4,
+        "revisited_pois": 4
+      },
+      "bytes": 13383119,
+      "token_stats": {
+        "raw_text_before": {
+          "mean": 1469.76,
+          "p50": 1470.0,
+          "p90": 1715.0,
+          "p95": 1818.0,
+          "p99": 2037.96,
+          "max": 2687
+        },
+        "raw_text_after": {
+          "mean": 733.47,
+          "p50": 715.0,
+          "p90": 910.0,
+          "p95": 931.0,
+          "p99": 958.99,
+          "max": 990
+        },
+        "candidate_start_after": {
+          "mean": 770.47,
+          "p50": 752.0,
+          "p90": 947.0,
+          "p95": 968.0,
+          "p99": 995.99,
+          "max": 1027
+        }
+      }
+    },
+    "val": {
+      "split": "val",
+      "source": "retrieval_assets_clsprec/NYC/joined_poi_classification/val_joined_top100_fullraw.parquet",
+      "output": "retrieval_assets_clsprec/NYC/joined_poi_classification/val_joined_top100.parquet",
+      "rows": 579,
+      "policy": {
+        "trajectory_lines": 12,
+        "transitions": 6,
+        "nearby": 6,
+        "top_categories": 4,
+        "revisited_pois": 4
+      },
+      "bytes": 1928969,
+      "token_stats": {
+        "raw_text_before": {
+          "mean": 1464.05,
+          "p50": 1456.0,
+          "p90": 1630.2,
+          "p95": 1716.0,
+          "p99": 1872.74,
+          "max": 2011
+        },
+        "raw_text_after": {
+          "mean": 711.22,
+          "p50": 692.0,
+          "p90": 856.6,
+          "p95": 902.1,
+          "p99": 937.22,
+          "max": 961
+        },
+        "candidate_start_after": {
+          "mean": 748.22,
+          "p50": 729.0,
+          "p90": 893.6,
+          "p95": 939.1,
+          "p99": 974.22,
+          "max": 998
+        }
+      }
+    },
+    "test": {
+      "split": "test",
+      "source": "retrieval_assets_clsprec/NYC/joined_poi_classification/test_joined_top100_fullraw.parquet",
+      "output": "retrieval_assets_clsprec/NYC/joined_poi_classification/test_joined_top100.parquet",
+      "rows": 884,
+      "policy": {
+        "trajectory_lines": 12,
+        "transitions": 6,
+        "nearby": 6,
+        "top_categories": 4,
+        "revisited_pois": 4
+      },
+      "bytes": 2828997,
+      "token_stats": {
+        "raw_text_before": {
+          "mean": 1427.85,
+          "p50": 1431.0,
+          "p90": 1586.7,
+          "p95": 1652.85,
+          "p99": 1826.51,
+          "max": 2414
+        },
+        "raw_text_after": {
+          "mean": 692.87,
+          "p50": 674.0,
+          "p90": 817.0,
+          "p95": 881.85,
+          "p99": 931.0,
+          "max": 946
+        },
+        "candidate_start_after": {
+          "mean": 729.87,
+          "p50": 711.0,
+          "p90": 854.0,
+          "p95": 918.85,
+          "p99": 968.0,
+          "max": 983
+        }
+      }
+    }
+  }
+}

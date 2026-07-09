@@ -1,0 +1,21 @@
+{
+  "output": "retrieval_assets_clsprec/NYC/double_llm/graphrag_semantic_edges_v2_top100_test_candidates.jsonl",
+  "written": 884,
+  "rows": 884,
+  "top_k": 100,
+  "legacy_hit_ratio": 0.687783,
+  "hit@1_ratio": 0.162896,
+  "hit@5_ratio": 0.339367,
+  "hit@10_ratio": 0.417421,
+  "hit@20_ratio": 0.502262,
+  "hit@25_ratio": 0.510181,
+  "hit@30_ratio": 0.523756,
+  "hit@50_ratio": 0.589367,
+  "hit@100_ratio": 0.64819,
+  "target_rank_when_hit": {
+    "p50": 5,
+    "p90": 47,
+    "mean": 15.37,
+    "max": 100
+  }
+}

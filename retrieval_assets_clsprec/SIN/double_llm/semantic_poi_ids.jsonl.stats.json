@@ -1,0 +1,7 @@
+{
+  "output": "retrieval_assets_clsprec/SIN/double_llm/semantic_poi_ids.jsonl",
+  "written": 5272,
+  "categories": 299,
+  "geo_cells": 173,
+  "city_code": "SIN"
+}

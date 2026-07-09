@@ -1,0 +1,83 @@
+{
+  "semantic_map": "retrieval_assets_getnext_clsprec/TKY/double_llm/semantic_poi_ids.jsonl",
+  "semantic_map_stats": {
+    "total": 6070,
+    "has_geo": 5839,
+    "missing_geo": 231,
+    "missing_geo_ratio": 0.038056
+  },
+  "splits": {
+    "train": {
+      "input": "retrieval_assets_getnext_clsprec/TKY/poi_sft/stage1_train_raw.jsonl",
+      "output": "retrieval_assets_getnext_clsprec/TKY/semantic_poi_sft/stage1_train_raw_semantic.jsonl",
+      "written": 12319,
+      "prompt_version": "raw_semantic_id_v1",
+      "candidate_limit": 0,
+      "candidate_semantic_limit": 0,
+      "counts": {
+        "trajectory_lines": 88805,
+        "transition_lines": 196490,
+        "nearby_lines": 197104,
+        "poi_geo_unk_mentions": 8862,
+        "candidate_sections_omitted": 12319,
+        "rows": 12319,
+        "input_chars": 54261087,
+        "output_chars": 36446927,
+        "rows_with_geo_unk": 12319,
+        "revisited_lines": 106215
+      },
+      "avg_input_chars": 4404.67,
+      "avg_output_chars": 2958.59,
+      "char_ratio": 0.671695,
+      "rows_with_geo_unk_ratio": 1.0
+    },
+    "val": {
+      "input": "retrieval_assets_getnext_clsprec/TKY/poi_sft/stage1_val_raw.jsonl",
+      "output": "retrieval_assets_getnext_clsprec/TKY/semantic_poi_sft/stage1_val_raw_semantic.jsonl",
+      "written": 1568,
+      "prompt_version": "raw_semantic_id_v1",
+      "candidate_limit": 0,
+      "candidate_semantic_limit": 0,
+      "counts": {
+        "trajectory_lines": 9696,
+        "transition_lines": 25020,
+        "nearby_lines": 25088,
+        "revisited_lines": 14980,
+        "candidate_sections_omitted": 1568,
+        "rows": 1568,
+        "input_chars": 6885181,
+        "output_chars": 4631937,
+        "rows_with_geo_unk": 1568,
+        "poi_geo_unk_mentions": 1006
+      },
+      "avg_input_chars": 4391.06,
+      "avg_output_chars": 2954.04,
+      "char_ratio": 0.67274,
+      "rows_with_geo_unk_ratio": 1.0
+    },
+    "test": {
+      "input": "retrieval_assets_getnext_clsprec/TKY/poi_sft/stage1_test_raw.jsonl",
+      "output": "retrieval_assets_getnext_clsprec/TKY/semantic_poi_sft/stage1_test_raw_semantic.jsonl",
+      "written": 2236,
+      "prompt_version": "raw_semantic_id_v1",
+      "candidate_limit": 0,
+      "candidate_semantic_limit": 0,
+      "counts": {
+        "trajectory_lines": 13686,
+        "transition_lines": 35638,
+        "nearby_lines": 35776,
+        "poi_geo_unk_mentions": 1479,
+        "revisited_lines": 21003,
+        "candidate_sections_omitted": 2236,
+        "rows": 2236,
+        "input_chars": 9775275,
+        "output_chars": 6570415,
+        "rows_with_geo_unk": 2236
+      },
+      "avg_input_chars": 4371.77,
+      "avg_output_chars": 2938.47,
+      "char_ratio": 0.672146,
+      "rows_with_geo_unk_ratio": 1.0
+    }
+  }
+}

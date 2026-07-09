@@ -1,0 +1,98 @@
+{
+  "semantic_map": "retrieval_assets_clsprec/SIN/double_llm/semantic_poi_ids.jsonl",
+  "graph_top_k": 100,
+  "format": "parquet",
+  "similar_profile": {
+    "enabled": true,
+    "model": "models/bge-m3",
+    "query_source": "recent_profile",
+    "k": 20,
+    "min_sim": 0.35,
+    "bank_rows": 4755,
+    "splits": {
+      "train": {
+        "rows": 4755,
+        "with_neighbors": 4755,
+        "has_signal": 4755,
+        "own_profile_insufficient": 815
+      },
+      "val": {
+        "rows": 627,
+        "with_neighbors": 627,
+        "has_signal": 627,
+        "own_profile_insufficient": 1
+      },
+      "test": {
+        "rows": 935,
+        "with_neighbors": 935,
+        "has_signal": 935,
+        "own_profile_insufficient": 5
+      }
+    }
+  },
+  "splits": {
+    "train": {
+      "split": "train",
+      "paths": {
+        "raw": "retrieval_assets_clsprec/SIN/semantic_poi_sft/stage1_train_raw_semantic.jsonl",
+        "preference": "retrieval_assets_clsprec/SIN/evidence/preference_evidence_train.jsonl",
+        "refined": "retrieval_assets_clsprec/SIN/refined_prompts_decision/lora_a_decision_v2_train_full_outputs.jsonl",
+        "graph": "retrieval_assets_clsprec/SIN/double_llm/graphrag_semantic_edges_v2_top100_train_candidates.jsonl"
+      },
+      "graph_top_k": 100,
+      "counts": {
+        "rows": 4755,
+        "refined_confidence_None": 4755,
+        "refined_useful_None": 4755,
+        "graph_target_in_topk": 3337
+      },
+      "allow_missing_refined": true,
+      "refined_file_missing": true,
+      "graph_target_in_topk_ratio": 0.701788,
+      "parquet_output": "retrieval_assets_clsprec/SIN/joined_poi_classification/train_joined_top100.parquet",
+      "parquet_bytes": 16052495
+    },
+    "val": {
+      "split": "val",
+      "paths": {
+        "raw": "retrieval_assets_clsprec/SIN/semantic_poi_sft/stage1_val_raw_semantic.jsonl",
+        "preference": "retrieval_assets_clsprec/SIN/evidence/preference_evidence_val.jsonl",
+        "refined": "retrieval_assets_clsprec/SIN/refined_prompts_decision/lora_a_decision_v2_val_full_outputs.jsonl",
+        "graph": "retrieval_assets_clsprec/SIN/double_llm/graphrag_semantic_edges_v2_top100_val_candidates.jsonl"
+      },
+      "graph_top_k": 100,
+      "counts": {
+        "rows": 627,
+        "refined_confidence_None": 627,
+        "refined_useful_None": 627,
+        "graph_target_in_topk": 457
+      },
+      "allow_missing_refined": true,
+      "refined_file_missing": true,
+      "graph_target_in_topk_ratio": 0.728868,
+      "parquet_output": "retrieval_assets_clsprec/SIN/joined_poi_classification/val_joined_top100.parquet",
+      "parquet_bytes": 2279104
+    },
+    "test": {
+      "split": "test",
+      "paths": {
+        "raw": "retrieval_assets_clsprec/SIN/semantic_poi_sft/stage1_test_raw_semantic.jsonl",
+        "preference": "retrieval_assets_clsprec/SIN/evidence/preference_evidence_test.jsonl",
+        "refined": "retrieval_assets_clsprec/SIN/refined_prompts_decision/lora_a_decision_v2_test_full_outputs.jsonl",
+        "graph": "retrieval_assets_clsprec/SIN/double_llm/graphrag_semantic_edges_v2_top100_test_candidates.jsonl"
+      },
+      "graph_top_k": 100,
+      "counts": {
+        "rows": 935,
+        "refined_confidence_None": 935,
+        "refined_useful_None": 935,
+        "graph_target_in_topk": 641
+      },
+      "allow_missing_refined": true,
+      "refined_file_missing": true,
+      "graph_target_in_topk_ratio": 0.685561,
+      "parquet_output": "retrieval_assets_clsprec/SIN/joined_poi_classification/test_joined_top100.parquet",
+      "parquet_bytes": 3288593
+    }
+  }
+}

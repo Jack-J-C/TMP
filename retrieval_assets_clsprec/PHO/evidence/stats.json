@@ -1,0 +1,74 @@
+{
+  "city": "PHO",
+  "filtering": {
+    "train_pois_total": 463,
+    "train_users_total": 43,
+    "allowed_train_pois": 463,
+    "allowed_train_users": 43,
+    "train": {
+      "rows_before": 2133,
+      "rows_after_vocab_filter": 2133,
+      "rows_after_traj_filter": 2133,
+      "users": 43,
+      "pois": 463,
+      "trajectories": 289
+    },
+    "val": {
+      "rows_before": 284,
+      "rows_after_vocab_filter": 252,
+      "rows_after_traj_filter": 252,
+      "users": 23,
+      "pois": 133,
+      "trajectories": 40
+    },
+    "test": {
+      "rows_before": 389,
+      "rows_after_vocab_filter": 338,
+      "rows_after_traj_filter": 338,
+      "users": 27,
+      "pois": 164,
+      "trajectories": 55
+    }
+  },
+  "evidence": {
+    "train": {
+      "samples": 289,
+      "files": {
+        "sequence": 289,
+        "geo": 289,
+        "preference": 289,
+        "stage2": 289
+      },
+      "target_candidate_recall": 0.8477508650519031,
+      "avg_candidates": 41.089965397923876,
+      "avg_history_count": 34.536332179930795,
+      "avg_current_len": 6.380622837370242
+    },
+    "val": {
+      "samples": 40,
+      "files": {
+        "sequence": 40,
+        "geo": 40,
+        "preference": 40,
+        "stage2": 40
+      },
+      "target_candidate_recall": 0.95,
+      "avg_candidates": 41.975,
+      "avg_history_count": 38.325,
+      "avg_current_len": 5.3
+    },
+    "test": {
+      "samples": 55,
+      "files": {
+        "sequence": 55,
+        "geo": 55,
+        "preference": 55,
+        "stage2": 55
+      },
+      "target_candidate_recall": 0.9272727272727272,
+      "avg_candidates": 41.89090909090909,
+      "avg_history_count": 38.345454545454544,
+      "avg_current_len": 5.1454545454545455
+    }
+  }
+}

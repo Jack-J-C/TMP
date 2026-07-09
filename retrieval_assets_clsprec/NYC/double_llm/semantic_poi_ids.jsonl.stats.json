@@ -1,0 +1,7 @@
+{
+  "output": "retrieval_assets_clsprec/NYC/double_llm/semantic_poi_ids.jsonl",
+  "written": 7229,
+  "categories": 347,
+  "geo_cells": 589,
+  "city_code": "NYC"
+}

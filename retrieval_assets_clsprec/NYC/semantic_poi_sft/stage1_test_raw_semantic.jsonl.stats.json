@@ -1,0 +1,24 @@
+{
+  "input": "retrieval_assets_clsprec/NYC/poi_sft/stage1_test_raw.jsonl",
+  "output": "retrieval_assets_clsprec/NYC/semantic_poi_sft/stage1_test_raw_semantic.jsonl",
+  "written": 884,
+  "prompt_version": "raw_semantic_id_v1",
+  "candidate_limit": 0,
+  "candidate_semantic_limit": 0,
+  "counts": {
+    "trajectory_lines": 4454,
+    "transition_lines": 13806,
+    "nearby_lines": 14144,
+    "poi_geo_unk_mentions": 1137,
+    "revisited_lines": 7941,
+    "candidate_sections_omitted": 884,
+    "rows": 884,
+    "input_chars": 3818885,
+    "output_chars": 2535665,
+    "rows_with_geo_unk": 884
+  },
+  "avg_input_chars": 4320.01,
+  "avg_output_chars": 2868.4,
+  "char_ratio": 0.66398,
+  "rows_with_geo_unk_ratio": 1.0
+}

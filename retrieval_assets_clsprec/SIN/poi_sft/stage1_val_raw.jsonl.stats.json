@@ -1,0 +1,15 @@
+{
+  "input_rows": 627,
+  "output_rows": 627,
+  "route": "RAW",
+  "prompt_version": "raw_v2_no_user_no_date",
+  "counts": {
+    "route_raw": 627,
+    "quality_good": 627,
+    "difficulty_many_candidates": 464,
+    "label_difficulty_target_not_in_candidates": 139,
+    "target_in_candidates": 488,
+    "difficulty_short_context": 4
+  },
+  "written": 627
+}

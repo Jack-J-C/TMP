@@ -1,0 +1,87 @@
+city=SIN
+split=train
+sample_id=SIN-train-000000
+user_id=100246
+target_poi_id=v7643
+target_rank=26
+target_in_candidates=True
+user_profile_insufficient=True
+similar_user_profile_has_signal=True
+similar_profile_injected=True
+candidate_poi_id=v7643
+candidate_label=1
+model_input_tokens_llama=940
+
+----- MODEL INPUT BEGIN -----
+[TASK=CANDIDATE_RERANK]
+
+Estimate whether the POI hypothesis matches the user's next check-in.
+
+[RECENT_CONTEXT]
+
+[ROUTE=RAW_SEM_COMPACT]
+Task: predict the next POI in SIN.
+SemCode=CATEGORY@lat,lon#local; @UNK means missing coordinates.
+
+Trajectory:
+1. v3334|HOUSING_DEVELOPMENT@1.29,103.80#P0001|Tue|s26
+2. v3943|HIGH_SCHOOL@1.33,103.84#P0002|Tue|s26|+21m
+3. v5886|COLLEGE_CAFETERIA@1.33,103.84#P0002|Tue|s26|+1m
+4. v223|MALL@1.26,103.82#P0001|Tue|s33|+192m
+5. v659|MALL@1.26,103.82#P0002|Tue|s33|+0m
+6. v323|SUBWAY@1.27,103.82#P0001|Tue|s33|+1m
+7. v896|ELECTRONICS_STORE@1.27,103.82#P0001|Tue|s35|+61m
+
+Transitions:
+- v1617|DEPARTMENT_STORE@1.26,103.82#P0001|src=same_last_poi|c1
+- v2182|LIGHT_RAIL@1.27,103.82#P0001|src=same_last_poi|c1
+- v7449|HOME_PRIVATE@1.29,103.83#P0002|src=same_last_poi|c1
+- v864|ELECTRONICS_STORE@1.26,103.82#P0002|src=same_last_poi|c1
+- v3425|BUILDING@1.30,103.86#P0002|src=same_last_category|c8
+- v3771|FLEA_MARKET@1.30,103.85#P0002|src=same_last_category|c5
+
+Nearby:
+- v1189|COFFEE_SHOP@1.27,103.82#P0001|d=0.007km
+- v1676|RAMEN_NOODLE_HOUSE@1.27,103.82#P0001|d=0.008km
+- v6460|LIGHT_RAIL@1.27,103.82#P0003|d=0.008km
+- v1083|COFFEE_SHOP@UNK#P0002|geo=unk|d=0.011km
+- v1600|CANDY_STORE@1.27,103.82#P0001|d=0.013km
+- v4122|SANDWICH_PLACE@1.27,103.82#P0001|d=0.014km
+
+[USER_SEMANTIC_PROFILE]
+
+history_count=0
+
+Long-term category affinity:
+- none
+
+Revisit affinity:
+- none
+
+Geo routine:
+- none
+
+Temporal routine:
+- none_available
+
+[SIMILAR_USER_SEMANTIC_PROFILE]
+
+source=bge_m3_user_knn;k=20;support_users=13;support_neighbors=20
+
+Long-term category affinity:
+1. SUBWAY|category=Subway|visits=11|support=20.83
+2. RESIDENTIAL_BUILDING_APARTMENT_CONDO|category=Residential Building (Apartment / Condo)|visits=11|support=20.79
+
+Revisit affinity:
+1. category=Residential Building (Apartment / Condo)|geo=LAT1_40_LON103_91|support=27.42
+
+Geo routine:
+1. geo=LAT1_40_LON103_91|visits=11|categories=Residential Building (Apartment / Condo),Light Rail|support=20.83
+
+Temporal routine:
+1. slot=s30|support=6.62
+
+[POI_HYPOTHESIS]
+
+id=v7643; semantic_id=SIN::RESIDENTIAL_BUILDING_APARTMENT_CONDO::GEO_UNK::P0014; category=Residential Building (Apartment / Condo); geo_cell=GEO_UNK; coord=UNK
+----- MODEL INPUT END -----

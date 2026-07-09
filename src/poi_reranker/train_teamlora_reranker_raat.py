@@ -11,6 +11,7 @@ import json
 import math
 import os
 import random
+import re
 from dataclasses import dataclass
 from pathlib import Path
 from typing import Any, Dict, Iterable, List, Sequence
@@ -32,18 +33,23 @@ EXPERTS = ("pref", "graph", "refine")
 
 
 def parse_args() -> argparse.Namespace:
+    bootstrap = argparse.ArgumentParser(add_help=False)
+    bootstrap.add_argument("--config", type=Path, default=None, help="Optional YAML config file. CLI args override config values.")
+    config_args, _ = bootstrap.parse_known_args()
+
     p = argparse.ArgumentParser(description="Train 3-expert TeamLoRA candidate-wise reranker with 2-view RAAT.")
+    p.add_argument("--config", type=Path, default=None, help="Optional YAML config file. CLI args override config values.")
     p.add_argument("--train-groups", type=Path, default=None, help="Optional prebuilt grouped TopK JSONL.")
     p.add_argument("--val-groups", type=Path, default=None, help="Optional prebuilt grouped TopK JSONL.")
     p.add_argument("--train-joined", type=Path, default=Path("retrieval_assets/NewYork/joined_poi_classification/train_joined_top100.parquet"))
     p.add_argument("--val-joined", type=Path, default=Path("retrieval_assets/NewYork/joined_poi_classification/val_joined_top100.parquet"))
     p.add_argument("--semantic-map", type=Path, default=Path("retrieval_assets/NewYork/double_llm/semantic_poi_ids.jsonl"))
     p.add_argument("--base-model", type=Path, default=Path("/mnt/data/yyl/TMP/models/Llama-3.2-1B-Instruct"))
-    p.add_argument("--output-dir", type=Path, required=True)
+    p.add_argument("--output-dir", type=Path, default=None)
     p.add_argument("--top-k", type=int, default=100)
     p.add_argument("--max-length", type=int, default=1024)
     p.add_argument("--expert-mode", choices=["anonymous", "named"], default="anonymous")
-    p.add_argument("--input-template", choices=["legacy", "semantic_profile_v1"], default="legacy")
+    p.add_argument("--input-template", choices=["legacy", "semantic_profile_v1", "semantic_profile_simuser_v1"], default="legacy")
     p.add_argument("--train-negatives", type=int, default=31)
     p.add_argument("--hard-negatives", type=int, default=16, help="Prefer negatives from top ranks.")
     p.add_argument("--eval-top-k", type=int, default=100)
@@ -61,7 +67,7 @@ def parse_args() -> argparse.Namespace:
     p.add_argument("--lora-dropout", type=float, default=0.05)
     p.add_argument("--scorer-dropout", type=float, default=0.1)
     p.add_argument("--graph-feature-dim", type=int, default=32)
-    p.add_argument("--use-graph-prior", action="store_true", help="Use GraphRAG rank prior and train TeamLoRA as residual correction.")
+    p.add_argument("--use-graph-prior", action=argparse.BooleanOptionalAction, default=False, help="Use GraphRAG rank prior and train TeamLoRA as residual correction.")
     p.add_argument("--graph-prior-type", choices=["rank_log", "rank_invlog"], default="rank_log")
     p.add_argument("--residual-alpha-init", type=float, default=0.1)
     p.add_argument("--residual-l2", type=float, default=0.0, help="Optional residual score L2 penalty.")
@@ -78,9 +84,9 @@ def parse_args() -> argparse.Namespace:
     p.add_argument("--eval-steps", type=int, default=200)
     p.add_argument("--save-steps", type=int, default=200)
     p.add_argument("--seed", type=int, default=42)
-    p.add_argument("--bf16", action="store_true")
-    p.add_argument("--fp16", action="store_true")
-    p.add_argument("--gradient-checkpointing", action="store_true")
+    p.add_argument("--bf16", action=argparse.BooleanOptionalAction, default=False)
+    p.add_argument("--fp16", action=argparse.BooleanOptionalAction, default=False)
+    p.add_argument("--gradient-checkpointing", action=argparse.BooleanOptionalAction, default=False)
     p.add_argument("--attn-implementation", choices=["eager", "sdpa", "flash_attention_2"], default=None)
     p.add_argument("--device", default="cuda")
     p.add_argument("--num-workers", type=int, default=0)
@@ -88,8 +94,42 @@ def parse_args() -> argparse.Namespace:
     p.add_argument("--max-val-groups", type=int, default=None)
     p.add_argument("--eval-candidate-limit", type=int, default=None, help="Optional fast eval limit per group. Final Top100 reports should leave this unset.")
     p.add_argument("--eval-candidate-batch-size", type=int, default=None, help="Score eval candidates in chunks to reduce peak memory.")
-    p.add_argument("--eval-final-only", action="store_true", help="Skip intermediate eval and evaluate only at final step.")
-    return p.parse_args()
+    p.add_argument("--eval-final-only", action=argparse.BooleanOptionalAction, default=False, help="Skip intermediate eval and evaluate only at final step.")
+
+    if config_args.config is not None:
+        config = load_yaml_config(config_args.config)
+        valid_keys = {action.dest for action in p._actions}
+        unknown = sorted(set(config) - valid_keys)
+        if unknown:
+            p.error(f"Unknown config key(s) in {config_args.config}: {', '.join(unknown)}")
+        p.set_defaults(**config)
+
+    args = p.parse_args()
+    coerce_path_defaults(p, args)
+    if args.output_dir is None:
+        p.error("--output-dir is required, either on the command line or in --config")
+    return args
+
+
+def load_yaml_config(path: Path) -> Dict[str, Any]:
+    try:
+        import yaml
+    except ImportError as exc:  # pragma: no cover - environment dependency guard.
+        raise SystemExit("PyYAML is required for --config. Install pyyaml or pass command-line args directly.") from exc
+    data = yaml.safe_load(path.read_text(encoding="utf-8"))
+    if data is None:
+        return {}
+    if not isinstance(data, dict):
+        raise SystemExit(f"Config file must contain a YAML mapping: {path}")
+    return dict(data)
+
+
+def coerce_path_defaults(parser: argparse.ArgumentParser, args: argparse.Namespace) -> None:
+    for action in parser._actions:
+        if getattr(action, "type", None) is Path:
+            value = getattr(args, action.dest, None)
+            if value is not None and not isinstance(value, Path):
+                setattr(args, action.dest, Path(value))
 
 
 def read_jsonl(path: Path) -> Iterable[Dict[str, Any]]:
@@ -191,7 +231,7 @@ def strip_preference_section(text: Any) -> str:
     return "\n".join(out).strip()
 
 
-def format_semantic_profile_text(group: Dict[str, Any], candidate: Dict[str, Any]) -> str:
+def format_semantic_profile_text(group: Dict[str, Any], candidate: Dict[str, Any], include_similar_profile: bool = False) -> str:
     hypothesis = str(candidate.get("candidate_hypothesis_text") or "").strip()
     if not hypothesis:
         hypothesis = (
@@ -201,18 +241,76 @@ def format_semantic_profile_text(group: Dict[str, Any], candidate: Dict[str, Any
     profile = str(group.get("user_semantic_profile") or "").strip()
     if not profile:
         profile = "Long-term category affinity:\n- none\n\nRevisit affinity:\n- none\n\nGeo routine:\n- none\n\nTemporal routine:\n- none_available"
-    return "\n\n".join(
-        [
-            "[TASK=CANDIDATE_RERANK]",
-            "Estimate whether the POI hypothesis matches the user's next check-in.",
-            "[RECENT_CONTEXT]",
-            strip_preference_section(group.get("pref_text")),
-            "[USER_SEMANTIC_PROFILE]",
-            profile,
-            "[POI_HYPOTHESIS]",
-            hypothesis,
-        ]
+    parts = [
+        "[TASK=CANDIDATE_RERANK]",
+        "Estimate whether the POI hypothesis matches the user's next check-in.",
+        "[RECENT_CONTEXT]",
+        strip_preference_section(group.get("pref_text")),
+        "[USER_SEMANTIC_PROFILE]",
+        profile,
+    ]
+    similar_profile = gated_similar_user_profile(group) if include_similar_profile else ""
+    if similar_profile:
+        parts.extend(["[SIMILAR_USER_SEMANTIC_PROFILE]", similar_profile])
+    parts.extend(["[POI_HYPOTHESIS]", hypothesis])
+    return "\n\n".join(parts)
+
+
+def profile_section_counts(profile: str) -> Dict[str, int]:
+    sections = {
+        "Long-term category affinity": 0,
+        "Revisit affinity": 0,
+        "Geo routine": 0,
+        "Temporal routine": 0,
+    }
+    current: str | None = None
+    for line in str(profile or "").splitlines():
+        stripped = line.strip()
+        if stripped.endswith(":"):
+            name = stripped[:-1]
+            current = name if name in sections else None
+            continue
+        if current is None or not stripped or stripped.startswith(("-", "history_count=", "source=")):
+            continue
+        if re.match(r"^\d+\.\s+", stripped):
+            sections[current] += 1
+    return sections
+
+
+def infer_user_profile_insufficient(group: Dict[str, Any]) -> bool:
+    explicit = group.get("user_profile_insufficient")
+    if explicit is not None:
+        return bool(explicit)
+    profile = str(group.get("user_semantic_profile") or "")
+    match = re.search(r"\bhistory_count=(\d+)", profile)
+    history_count = int(match.group(1)) if match else 0
+    counts = profile_section_counts(profile)
+    return (
+        history_count <= 3
+        or counts["Long-term category affinity"] <= 1
+        or counts["Revisit affinity"] == 0
+        or counts["Geo routine"] == 0
     )
+
+
+def infer_similar_profile_has_signal(group: Dict[str, Any]) -> bool:
+    explicit = group.get("similar_user_profile_has_signal")
+    if explicit is not None:
+        return bool(explicit)
+    profile = str(group.get("similar_user_semantic_profile") or "")
+    counts = profile_section_counts(profile)
+    return sum(1 for value in counts.values() if value > 0) >= 2
+
+
+def gated_similar_user_profile(group: Dict[str, Any]) -> str:
+    profile = str(group.get("similar_user_semantic_profile") or "").strip()
+    if not profile:
+        return ""
+    if not infer_user_profile_insufficient(group):
+        return ""
+    if not infer_similar_profile_has_signal(group):
+        return ""
+    return profile
 
 
 def format_anonymous_text(
@@ -222,7 +320,9 @@ def format_anonymous_text(
     input_template: str = "legacy",
 ) -> str:
     if input_template == "semantic_profile_v1":
-        return format_semantic_profile_text(group, candidate)
+        return format_semantic_profile_text(group, candidate, include_similar_profile=False)
+    if input_template == "semantic_profile_simuser_v1":
+        return format_semantic_profile_text(group, candidate, include_similar_profile=True)
     if view == "target_mask":
         graph_evidence = "Graph evidence is target-masked for adversarial robustness."
     elif view == "target_demote":
@@ -681,11 +781,17 @@ def evaluate(model: TeamLoRAReranker, tokenizer: Any, loader: DataLoader, args: 
             "top5": 0.0,
             "top10": 0.0,
             "top20": 0.0,
+            "ndcg1": 0.0,
+            "ndcg5": 0.0,
+            "ndcg10": 0.0,
             "mrr": 0.0,
             "conditional_top1": 0.0,
             "conditional_top5": 0.0,
             "conditional_top10": 0.0,
             "conditional_top20": 0.0,
+            "conditional_ndcg1": 0.0,
+            "conditional_ndcg5": 0.0,
+            "conditional_ndcg10": 0.0,
             "conditional_mrr": 0.0,
             "candidate_hit": 0.0,
             "evaluated": float(total),
@@ -693,11 +799,17 @@ def evaluate(model: TeamLoRAReranker, tokenizer: Any, loader: DataLoader, args: 
         }
     arr = np.asarray(ranks)
     candidate_hit = float(len(ranks) / total) if total else 0.0
+    ndcg1 = np.where(arr <= 1, 1.0 / np.log2(arr + 1.0), 0.0)
+    ndcg5 = np.where(arr <= 5, 1.0 / np.log2(arr + 1.0), 0.0)
+    ndcg10 = np.where(arr <= 10, 1.0 / np.log2(arr + 1.0), 0.0)
     conditional = {
         "conditional_top1": float(np.mean(arr <= 1)),
         "conditional_top5": float(np.mean(arr <= 5)),
         "conditional_top10": float(np.mean(arr <= 10)),
         "conditional_top20": float(np.mean(arr <= 20)),
+        "conditional_ndcg1": float(np.mean(ndcg1)),
+        "conditional_ndcg5": float(np.mean(ndcg5)),
+        "conditional_ndcg10": float(np.mean(ndcg10)),
         "conditional_mrr": float(np.mean(1.0 / arr)),
     }
     metrics = {
@@ -705,6 +817,9 @@ def evaluate(model: TeamLoRAReranker, tokenizer: Any, loader: DataLoader, args: 
         "top5": conditional["conditional_top5"] * candidate_hit,
         "top10": conditional["conditional_top10"] * candidate_hit,
         "top20": conditional["conditional_top20"] * candidate_hit,
+        "ndcg1": conditional["conditional_ndcg1"] * candidate_hit,
+        "ndcg5": conditional["conditional_ndcg5"] * candidate_hit,
+        "ndcg10": conditional["conditional_ndcg10"] * candidate_hit,
         "mrr": conditional["conditional_mrr"] * candidate_hit,
         **conditional,
         "candidate_hit": candidate_hit,

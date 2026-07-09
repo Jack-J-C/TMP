@@ -1,0 +1,40 @@
+{
+  "split": "train",
+  "source": "retrieval_assets_getnext_clsprec/TKY/joined_poi_classification/train_joined_top100_fullraw.parquet",
+  "output": "retrieval_assets_getnext_clsprec/TKY/joined_poi_classification/train_joined_top100.parquet",
+  "rows": 12319,
+  "policy": {
+    "trajectory_lines": 12,
+    "transitions": 6,
+    "nearby": 6,
+    "top_categories": 4,
+    "revisited_pois": 4
+  },
+  "bytes": 36188850,
+  "token_stats": {
+    "raw_text_before": {
+      "mean": 1466.82,
+      "p50": 1457.0,
+      "p90": 1650.0,
+      "p95": 1737.0,
+      "p99": 1939.82,
+      "max": 2610
+    },
+    "raw_text_after": {
+      "mean": 730.2,
+      "p50": 712.0,
+      "p90": 885.0,
+      "p95": 904.0,
+      "p99": 927.0,
+      "max": 998
+    },
+    "candidate_start_after": {
+      "mean": 767.2,
+      "p50": 749.0,
+      "p90": 922.0,
+      "p95": 941.0,
+      "p99": 964.0,
+      "max": 1035
+    }
+  }
+}

@@ -1,0 +1,15 @@
+{
+  "input_rows": 2236,
+  "output_rows": 2236,
+  "route": "RAW",
+  "prompt_version": "raw_v2_no_user_no_date",
+  "counts": {
+    "route_raw": 2236,
+    "quality_good": 2236,
+    "target_in_candidates": 1864,
+    "difficulty_many_candidates": 1521,
+    "label_difficulty_target_not_in_candidates": 372,
+    "difficulty_short_context": 3
+  },
+  "written": 2236
+}

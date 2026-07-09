@@ -88,6 +88,12 @@ def clean_text(value: Any, max_chars: int | None = None) -> str:
     return text
 
 
+def optional_bool(value: Any) -> bool | None:
+    if value is None:
+        return None
+    return bool(value)
+
+
 def build_group(row: Dict[str, Any], semantic_map: Dict[str, Dict[str, Any]], top_k: int) -> Dict[str, Any] | None:
     candidates = [str(x) for x in (row.get("graph_candidate_poi_ids") or [])][:top_k]
     if not candidates:
@@ -142,6 +148,10 @@ def build_group(row: Dict[str, Any], semantic_map: Dict[str, Dict[str, Any]], to
         "pref_text": clean_text(row.get("raw_text"), max_chars=6000),
         "refine_text": clean_text(row.get("refined_text"), max_chars=2000),
         "user_semantic_profile": clean_text(row.get("user_semantic_profile"), max_chars=3000),
+        "similar_user_semantic_profile": clean_text(row.get("similar_user_semantic_profile"), max_chars=1600),
+        "similar_user_count": int(row.get("similar_user_count") or 0),
+        "similar_user_profile_has_signal": optional_bool(row.get("similar_user_profile_has_signal")),
+        "user_profile_insufficient": optional_bool(row.get("user_profile_insufficient")),
         "graph_text": clean_text(row.get("graph_text"), max_chars=9000),
         "candidates": candidate_rows,
     }

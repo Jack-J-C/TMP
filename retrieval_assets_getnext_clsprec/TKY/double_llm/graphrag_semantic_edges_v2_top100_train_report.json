@@ -1,0 +1,21 @@
+{
+  "output": "retrieval_assets_getnext_clsprec/TKY/double_llm/graphrag_semantic_edges_v2_top100_train_candidates.jsonl",
+  "written": 12319,
+  "rows": 12319,
+  "top_k": 100,
+  "legacy_hit_ratio": 0.856157,
+  "hit@1_ratio": 0.358877,
+  "hit@5_ratio": 0.616446,
+  "hit@10_ratio": 0.697216,
+  "hit@20_ratio": 0.749655,
+  "hit@25_ratio": 0.763374,
+  "hit@30_ratio": 0.773764,
+  "hit@50_ratio": 0.795032,
+  "hit@100_ratio": 0.828233,
+  "target_rank_when_hit": {
+    "p50": 2,
+    "p90": 19,
+    "mean": 7.7401,
+    "max": 100
+  }
+}

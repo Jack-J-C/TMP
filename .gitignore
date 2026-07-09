@@ -54,7 +54,6 @@ trainable_model.bin
 # Common large data formats
 *.jsonl
 *.jsonl.gz
-*.parquet
 *.csv
 *.tsv
 *.npy
@@ -115,7 +114,6 @@ datasets/
 retrieval_assets/
 *.jsonl
 *.jsonl.gz
-*.parquet
 *.csv
 *.tsv
 *.npy

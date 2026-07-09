@@ -1,0 +1,21 @@
+{
+  "split": "val",
+  "paths": {
+    "raw": "retrieval_assets_getnext_clsprec/TKY/semantic_poi_sft/stage1_val_raw_semantic.jsonl",
+    "preference": "retrieval_assets_getnext_clsprec/TKY/evidence/preference_evidence_val.jsonl",
+    "refined": "retrieval_assets_getnext_clsprec/TKY/refined_prompts_decision/lora_a_decision_v2_val_full_outputs.jsonl",
+    "graph": "retrieval_assets_getnext_clsprec/TKY/double_llm/graphrag_semantic_edges_v2_top100_val_candidates.jsonl"
+  },
+  "graph_top_k": 100,
+  "counts": {
+    "rows": 1568,
+    "refined_confidence_None": 1568,
+    "refined_useful_None": 1568,
+    "graph_target_in_topk": 1268
+  },
+  "allow_missing_refined": true,
+  "refined_file_missing": true,
+  "graph_target_in_topk_ratio": 0.808673,
+  "parquet_output": "retrieval_assets_getnext_clsprec/TKY/joined_poi_classification/val_joined_top100.parquet",
+  "parquet_bytes": 5426617
+}

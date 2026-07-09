@@ -1,0 +1,48 @@
+train_joined: retrieval_assets_clsprec/SIN/joined_poi_classification/train_joined_top100.parquet
+val_joined: retrieval_assets_clsprec/SIN/joined_poi_classification/val_joined_top100.parquet
+semantic_map: retrieval_assets_clsprec/SIN/double_llm/semantic_poi_ids.jsonl
+base_model: /mnt/data/users/yyl/TMP/models/Llama-3.2-1B-Instruct
+output_dir: models/poi-teamlora-reranker-sin-anon3-semprofile-simuser-l1280-priorres-step600-v2
+
+top_k: 100
+max_length: 1440
+input_template: semantic_profile_simuser_v1
+expert_mode: anonymous
+
+train_negatives: 7
+hard_negatives: 6
+batch_groups: 1
+grad_accum: 8
+max_steps: 600
+lr: 0.0002
+weight_decay: 0.0
+warmup_ratio: 0.03
+
+lora_r: 8
+lora_alpha: 16
+lora_dropout: 0.05
+scorer_dropout: 0.1
+graph_feature_dim: 32
+
+use_graph_prior: true
+graph_prior_type: rank_log
+residual_alpha_init: 0.1
+residual_l2: 0.01
+residual_bound_mode: tanh
+residual_bound_value: 0.3
+
+raat_mode: none
+val_hit_only: true
+eval_candidate_limit: null
+eval_candidate_batch_size: 2
+eval_final_only: true
+eval_steps: 600
+save_steps: 600
+logging_steps: 10
+
+bf16: true
+gradient_checkpointing: true
+attn_implementation: sdpa
+device: cuda
+num_workers: 0
+seed: 42

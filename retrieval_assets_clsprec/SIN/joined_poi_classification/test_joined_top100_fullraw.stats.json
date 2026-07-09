@@ -1,0 +1,21 @@
+{
+  "split": "test",
+  "paths": {
+    "raw": "retrieval_assets_clsprec/SIN/semantic_poi_sft/stage1_test_raw_semantic.jsonl",
+    "preference": "retrieval_assets_clsprec/SIN/evidence/preference_evidence_test.jsonl",
+    "refined": "retrieval_assets_clsprec/SIN/refined_prompts_decision/lora_a_decision_v2_test_full_outputs.jsonl",
+    "graph": "retrieval_assets_clsprec/SIN/double_llm/graphrag_semantic_edges_v2_top100_test_candidates.jsonl"
+  },
+  "graph_top_k": 100,
+  "counts": {
+    "rows": 935,
+    "refined_confidence_None": 935,
+    "refined_useful_None": 935,
+    "graph_target_in_topk": 641
+  },
+  "allow_missing_refined": true,
+  "refined_file_missing": true,
+  "graph_target_in_topk_ratio": 0.685561,
+  "parquet_output": "retrieval_assets_clsprec/SIN/joined_poi_classification/test_joined_top100.parquet",
+  "parquet_bytes": 3288593
+}

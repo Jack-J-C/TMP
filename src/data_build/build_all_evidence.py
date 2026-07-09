@@ -50,6 +50,42 @@ class GeoIndex:
 
 
 DEFAULT_CITIES = {
+    "NYC": CitySpec(
+        city="NYC",
+        prefix="NYC",
+        input_dir=Path(_os.path.join(_PROJ_ROOT, "raw_data", "NYC")),
+        train_file="NYC_train.csv",
+        val_file="NYC_val.csv",
+        test_file="NYC_test.csv",
+        timezone_minutes=-240,
+    ),
+    "PHO": CitySpec(
+        city="PHO",
+        prefix="PHO",
+        input_dir=Path(_os.path.join(_PROJ_ROOT, "raw_data", "PHO")),
+        train_file="PHO_train.csv",
+        val_file="PHO_val.csv",
+        test_file="PHO_test.csv",
+        timezone_minutes=-420,
+    ),
+    "SIN": CitySpec(
+        city="SIN",
+        prefix="SIN",
+        input_dir=Path(_os.path.join(_PROJ_ROOT, "raw_data", "SIN")),
+        train_file="SIN_train.csv",
+        val_file="SIN_val.csv",
+        test_file="SIN_test.csv",
+        timezone_minutes=480,
+    ),
+    "TKY": CitySpec(
+        city="TKY",
+        prefix="TKY",
+        input_dir=Path(_os.path.join(_PROJ_ROOT, "raw_data", "TKY")),
+        train_file="TKY_train.csv",
+        val_file="TKY_val.csv",
+        test_file="TKY_test.csv",
+        timezone_minutes=540,
+    ),
     "NewYork": CitySpec(
         city="NewYork",
         prefix="NY",
@@ -120,6 +156,8 @@ def parse_args() -> argparse.Namespace:
 
 def resolve_city_spec(base: CitySpec, tcpp_root: Path) -> CitySpec:
     """Resolve Massive-STEPS input paths from the user-supplied TCPP root."""
+    if base.city in {"NYC", "PHO", "SIN", "TKY"}:
+        return base
     dir_name = base.input_dir.name
     input_dir = tcpp_root / dir_name
     return replace(base, input_dir=input_dir)
@@ -143,6 +181,31 @@ def _format_time(dt: pd.Series) -> pd.Series:
 
 def load_split(path: Path, city: CitySpec, split: str) -> pd.DataFrame:
     df = pd.read_csv(path)
+    if set(STANDARD_COLUMNS).issubset(df.columns):
+        local_dt = pd.to_datetime(df["local_time"], errors="coerce")
+        if local_dt.isna().any():
+            raise ValueError(f"{path} has {int(local_dt.isna().sum())} unparseable local_time rows")
+        out = df[STANDARD_COLUMNS].copy()
+        out["user_id"] = out["user_id"].astype(str)
+        out["POI_id"] = out["POI_id"].map(_normalize_poi_id)
+        out["POI_catid"] = out["POI_catid"].fillna("Unknown").astype(str)
+        out["POI_catid_code"] = pd.to_numeric(out["POI_catid_code"], errors="coerce").fillna(-1).astype(int)
+        out["POI_catname"] = out["POI_catname"].fillna("Unknown").astype(str)
+        out["latitude"] = pd.to_numeric(out["latitude"], errors="coerce").fillna(0.0).astype(float)
+        out["longitude"] = pd.to_numeric(out["longitude"], errors="coerce").fillna(0.0).astype(float)
+        out["coord_available"] = pd.to_numeric(out["coord_available"], errors="coerce").fillna(0).astype(int)
+        out["timezone"] = pd.to_numeric(out["timezone"], errors="coerce").fillna(city.timezone_minutes).astype(int)
+        out["day_of_week"] = pd.to_numeric(out["day_of_week"], errors="coerce").fillna(local_dt.dt.dayofweek).astype(int)
+        out["norm_in_day_time"] = pd.to_numeric(out["norm_in_day_time"], errors="coerce").fillna(
+            (local_dt.dt.hour * 60 + local_dt.dt.minute) / 1440.0
+        )
+        out["trajectory_id"] = out["trajectory_id"].astype(str)
+        out["norm_day_shift"] = pd.to_numeric(out["norm_day_shift"], errors="coerce").fillna(0.0)
+        out["norm_relative_time"] = pd.to_numeric(out["norm_relative_time"], errors="coerce").fillna(0.0)
+        out["_local_dt"] = local_dt
+        out["_split"] = split
+        return out.sort_values(["user_id", "_local_dt", "trajectory_id"], kind="mergesort")
+
     required = {
         "trail_id",
         "user_id",

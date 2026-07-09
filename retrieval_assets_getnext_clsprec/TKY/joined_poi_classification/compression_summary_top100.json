@@ -1,0 +1,127 @@
+{
+  "top_k": 100,
+  "input_dir": "retrieval_assets_getnext_clsprec/TKY/joined_poi_classification",
+  "backup_suffix": "fullraw",
+  "splits": {
+    "train": {
+      "split": "train",
+      "source": "retrieval_assets_getnext_clsprec/TKY/joined_poi_classification/train_joined_top100_fullraw.parquet",
+      "output": "retrieval_assets_getnext_clsprec/TKY/joined_poi_classification/train_joined_top100.parquet",
+      "rows": 12319,
+      "policy": {
+        "trajectory_lines": 12,
+        "transitions": 6,
+        "nearby": 6,
+        "top_categories": 4,
+        "revisited_pois": 4
+      },
+      "bytes": 36188850,
+      "token_stats": {
+        "raw_text_before": {
+          "mean": 1466.82,
+          "p50": 1457.0,
+          "p90": 1650.0,
+          "p95": 1737.0,
+          "p99": 1939.82,
+          "max": 2610
+        },
+        "raw_text_after": {
+          "mean": 730.2,
+          "p50": 712.0,
+          "p90": 885.0,
+          "p95": 904.0,
+          "p99": 927.0,
+          "max": 998
+        },
+        "candidate_start_after": {
+          "mean": 767.2,
+          "p50": 749.0,
+          "p90": 922.0,
+          "p95": 941.0,
+          "p99": 964.0,
+          "max": 1035
+        }
+      }
+    },
+    "val": {
+      "split": "val",
+      "source": "retrieval_assets_getnext_clsprec/TKY/joined_poi_classification/val_joined_top100_fullraw.parquet",
+      "output": "retrieval_assets_getnext_clsprec/TKY/joined_poi_classification/val_joined_top100.parquet",
+      "rows": 1568,
+      "policy": {
+        "trajectory_lines": 12,
+        "transitions": 6,
+        "nearby": 6,
+        "top_categories": 4,
+        "revisited_pois": 4
+      },
+      "bytes": 5086695,
+      "token_stats": {
+        "raw_text_before": {
+          "mean": 1461.55,
+          "p50": 1447.0,
+          "p90": 1592.3,
+          "p95": 1660.65,
+          "p99": 1826.32,
+          "max": 2162
+        },
+        "raw_text_after": {
+          "mean": 717.33,
+          "p50": 694.0,
+          "p90": 842.0,
+          "p95": 891.0,
+          "p99": 920.33,
+          "max": 943
+        },
+        "candidate_start_after": {
+          "mean": 754.33,
+          "p50": 731.0,
+          "p90": 879.0,
+          "p95": 928.0,
+          "p99": 957.33,
+          "max": 980
+        }
+      }
+    },
+    "test": {
+      "split": "test",
+      "source": "retrieval_assets_getnext_clsprec/TKY/joined_poi_classification/test_joined_top100_fullraw.parquet",
+      "output": "retrieval_assets_getnext_clsprec/TKY/joined_poi_classification/test_joined_top100.parquet",
+      "rows": 2236,
+      "policy": {
+        "trajectory_lines": 12,
+        "transitions": 6,
+        "nearby": 6,
+        "top_categories": 4,
+        "revisited_pois": 4
+      },
+      "bytes": 6987162,
+      "token_stats": {
+        "raw_text_before": {
+          "mean": 1455.0,
+          "p50": 1440.0,
+          "p90": 1594.5,
+          "p95": 1669.25,
+          "p99": 1867.3,
+          "max": 2048
+        },
+        "raw_text_after": {
+          "mean": 713.16,
+          "p50": 689.0,
+          "p90": 838.0,
+          "p95": 891.0,
+          "p99": 915.3,
+          "max": 942
+        },
+        "candidate_start_after": {
+          "mean": 750.16,
+          "p50": 726.0,
+          "p90": 875.0,
+          "p95": 928.0,
+          "p99": 952.3,
+          "max": 979
+        }
+      }
+    }
+  }
+}

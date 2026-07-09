@@ -1,0 +1,24 @@
+{
+  "input": "retrieval_assets_getnext_clsprec/TKY/poi_sft/stage1_test_raw.jsonl",
+  "output": "retrieval_assets_getnext_clsprec/TKY/semantic_poi_sft/stage1_test_raw_semantic.jsonl",
+  "written": 2236,
+  "prompt_version": "raw_semantic_id_v1",
+  "candidate_limit": 0,
+  "candidate_semantic_limit": 0,
+  "counts": {
+    "trajectory_lines": 13686,
+    "transition_lines": 35638,
+    "nearby_lines": 35776,
+    "poi_geo_unk_mentions": 1479,
+    "revisited_lines": 21003,
+    "candidate_sections_omitted": 2236,
+    "rows": 2236,
+    "input_chars": 9775275,
+    "output_chars": 6570415,
+    "rows_with_geo_unk": 2236
+  },
+  "avg_input_chars": 4371.77,
+  "avg_output_chars": 2938.47,
+  "char_ratio": 0.672146,
+  "rows_with_geo_unk_ratio": 1.0
+}

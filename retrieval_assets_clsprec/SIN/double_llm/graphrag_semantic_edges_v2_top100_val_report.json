@@ -1,0 +1,21 @@
+{
+  "output": "retrieval_assets_clsprec/SIN/double_llm/graphrag_semantic_edges_v2_top100_val_candidates.jsonl",
+  "written": 627,
+  "rows": 627,
+  "top_k": 100,
+  "legacy_hit_ratio": 0.778309,
+  "hit@1_ratio": 0.261563,
+  "hit@5_ratio": 0.438596,
+  "hit@10_ratio": 0.523126,
+  "hit@20_ratio": 0.577352,
+  "hit@25_ratio": 0.596491,
+  "hit@30_ratio": 0.61244,
+  "hit@50_ratio": 0.657097,
+  "hit@100_ratio": 0.728868,
+  "target_rank_when_hit": {
+    "p50": 3,
+    "p90": 48,
+    "mean": 13.9103,
+    "max": 100
+  }
+}

@@ -1,0 +1,162 @@
+{
+  "NYC": {
+    "train": {
+      "samples": 4502,
+      "avg_candidates": 49.1353,
+      "max_candidates": 64,
+      "empty_candidates": 0,
+      "target_in_candidates": 3253,
+      "target_in_candidates_ratio": 0.722568,
+      "empty_geo": 0,
+      "empty_preference_history": 820,
+      "empty_transition_candidates": 10,
+      "label_keys_removed": [
+        "answer",
+        "gold",
+        "gold_answer",
+        "label",
+        "target",
+        "target_category",
+        "target_poi",
+        "target_poi_id",
+        "true_next",
+        "true_next_poi",
+        "true_next_poi_id"
+      ],
+      "input_path": "retrieval_assets_clsprec/NYC/evidence/teacher_distill_inputs_train.jsonl",
+      "label_path": "retrieval_assets_clsprec/NYC/evidence/teacher_distill_labels_train.jsonl"
+    },
+    "val": {
+      "samples": 579,
+      "avg_candidates": 50.6045,
+      "max_candidates": 64,
+      "empty_candidates": 0,
+      "target_in_candidates": 407,
+      "target_in_candidates_ratio": 0.702936,
+      "empty_geo": 0,
+      "empty_preference_history": 0,
+      "empty_transition_candidates": 0,
+      "label_keys_removed": [
+        "answer",
+        "gold",
+        "gold_answer",
+        "label",
+        "target",
+        "target_category",
+        "target_poi",
+        "target_poi_id",
+        "true_next",
+        "true_next_poi",
+        "true_next_poi_id"
+      ],
+      "input_path": "retrieval_assets_clsprec/NYC/evidence/teacher_distill_inputs_val.jsonl",
+      "label_path": "retrieval_assets_clsprec/NYC/evidence/teacher_distill_labels_val.jsonl"
+    },
+    "test": {
+      "samples": 884,
+      "avg_candidates": 49.9796,
+      "max_candidates": 64,
+      "empty_candidates": 0,
+      "target_in_candidates": 608,
+      "target_in_candidates_ratio": 0.687783,
+      "empty_geo": 0,
+      "empty_preference_history": 0,
+      "empty_transition_candidates": 1,
+      "label_keys_removed": [
+        "answer",
+        "gold",
+        "gold_answer",
+        "label",
+        "target",
+        "target_category",
+        "target_poi",
+        "target_poi_id",
+        "true_next",
+        "true_next_poi",
+        "true_next_poi_id"
+      ],
+      "input_path": "retrieval_assets_clsprec/NYC/evidence/teacher_distill_inputs_test.jsonl",
+      "label_path": "retrieval_assets_clsprec/NYC/evidence/teacher_distill_labels_test.jsonl"
+    }
+  },
+  "SIN": {
+    "train": {
+      "samples": 4755,
+      "avg_candidates": 50.5243,
+      "max_candidates": 64,
+      "empty_candidates": 0,
+      "target_in_candidates": 3582,
+      "target_in_candidates_ratio": 0.753312,
+      "empty_geo": 0,
+      "empty_preference_history": 800,
+      "empty_transition_candidates": 5,
+      "label_keys_removed": [
+        "answer",
+        "gold",
+        "gold_answer",
+        "label",
+        "target",
+        "target_category",
+        "target_poi",
+        "target_poi_id",
+        "true_next",
+        "true_next_poi",
+        "true_next_poi_id"
+      ],
+      "input_path": "retrieval_assets_clsprec/SIN/evidence/teacher_distill_inputs_train.jsonl",
+      "label_path": "retrieval_assets_clsprec/SIN/evidence/teacher_distill_labels_train.jsonl"
+    },
+    "val": {
+      "samples": 627,
+      "avg_candidates": 51.8038,
+      "max_candidates": 64,
+      "empty_candidates": 0,
+      "target_in_candidates": 488,
+      "target_in_candidates_ratio": 0.778309,
+      "empty_geo": 0,
+      "empty_preference_history": 0,
+      "empty_transition_candidates": 0,
+      "label_keys_removed": [
+        "answer",
+        "gold",
+        "gold_answer",
+        "label",
+        "target",
+        "target_category",
+        "target_poi",
+        "target_poi_id",
+        "true_next",
+        "true_next_poi",
+        "true_next_poi_id"
+      ],
+      "input_path": "retrieval_assets_clsprec/SIN/evidence/teacher_distill_inputs_val.jsonl",
+      "label_path": "retrieval_assets_clsprec/SIN/evidence/teacher_distill_labels_val.jsonl"
+    },
+    "test": {
+      "samples": 935,
+      "avg_candidates": 51.1422,
+      "max_candidates": 64,
+      "empty_candidates": 0,
+      "target_in_candidates": 698,
+      "target_in_candidates_ratio": 0.746524,
+      "empty_geo": 0,
+      "empty_preference_history": 0,
+      "empty_transition_candidates": 1,
+      "label_keys_removed": [
+        "answer",
+        "gold",
+        "gold_answer",
+        "label",
+        "target",
+        "target_category",
+        "target_poi",
+        "target_poi_id",
+        "true_next",
+        "true_next_poi",
+        "true_next_poi_id"
+      ],
+      "input_path": "retrieval_assets_clsprec/SIN/evidence/teacher_distill_inputs_test.jsonl",
+      "label_path": "retrieval_assets_clsprec/SIN/evidence/teacher_distill_labels_test.jsonl"
+    }
+  }
+}

@@ -1,0 +1,36 @@
+{
+  "city": "TKY",
+  "source": "/mnt/data/users/yyl/TMP/raw_data/TKY",
+  "split_source": "TCPP pre-split train/validation/test files",
+  "protocol": "LLM4POI-style last-point trajectory prediction",
+  "filtering": {
+    "train_pois_total": 6070,
+    "train_users_total": 1159,
+    "allowed_train_pois": 6070,
+    "allowed_train_users": 1159,
+    "train": {
+      "rows_before": 101124,
+      "rows_after_vocab_filter": 101124,
+      "rows_after_traj_filter": 101124,
+      "users": 1159,
+      "pois": 6070,
+      "trajectories": 12319
+    },
+    "val": {
+      "rows_before": 11425,
+      "rows_after_vocab_filter": 11264,
+      "rows_after_traj_filter": 11264,
+      "users": 795,
+      "pois": 3008,
+      "trajectories": 1568
+    },
+    "test": {
+      "rows_before": 16220,
+      "rows_after_vocab_filter": 15922,
+      "rows_after_traj_filter": 15922,
+      "users": 932,
+      "pois": 3431,
+      "trajectories": 2236
+    }
+  }
+}

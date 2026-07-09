@@ -1,0 +1,162 @@
+{
+  "ok": true,
+  "cities": {
+    "NYC": {
+      "splits": {
+        "train": {
+          "rows": 37468,
+          "users": 820,
+          "pois": 7230,
+          "trajectories": 4502,
+          "traj_min_len": 5,
+          "traj_len_ge2": 4502,
+          "traj_len_ge5": 4502,
+          "evidence_samples": 4502,
+          "candidate_recall_stage2": 0.722568,
+          "candidate_empty": 0,
+          "target_missing": 0
+        },
+        "val": {
+          "rows": 3822,
+          "users": 323,
+          "pois": 1943,
+          "trajectories": 579,
+          "traj_min_len": 2,
+          "traj_len_ge2": 579,
+          "traj_len_ge5": 461,
+          "evidence_samples": 579,
+          "candidate_recall_stage2": 0.702936,
+          "candidate_empty": 0,
+          "target_missing": 0,
+          "rows_with_poi_not_in_train_vocab": 0,
+          "users_not_in_train": 0
+        },
+        "test": {
+          "rows": 5338,
+          "users": 464,
+          "pois": 2431,
+          "trajectories": 884,
+          "traj_min_len": 2,
+          "traj_len_ge2": 884,
+          "traj_len_ge5": 620,
+          "evidence_samples": 884,
+          "candidate_recall_stage2": 0.687783,
+          "candidate_empty": 0,
+          "target_missing": 0,
+          "rows_with_poi_not_in_train_vocab": 0,
+          "users_not_in_train": 0
+        }
+      },
+      "checks": {
+        "chronology_violations": 0,
+        "graph_x_pois": 7230,
+        "train_pois_missing_from_graph_x": 0
+      }
+    },
+    "SIN": {
+      "splits": {
+        "train": {
+          "rows": 37974,
+          "users": 800,
+          "pois": 5273,
+          "trajectories": 4755,
+          "traj_min_len": 5,
+          "traj_len_ge2": 4755,
+          "traj_len_ge5": 4755,
+          "evidence_samples": 4755,
+          "candidate_recall_stage2": 0.753312,
+          "candidate_empty": 0,
+          "target_missing": 0
+        },
+        "val": {
+          "rows": 4319,
+          "users": 373,
+          "pois": 1806,
+          "trajectories": 627,
+          "traj_min_len": 2,
+          "traj_len_ge2": 627,
+          "traj_len_ge5": 549,
+          "evidence_samples": 627,
+          "candidate_recall_stage2": 0.778309,
+          "candidate_empty": 0,
+          "target_missing": 0,
+          "rows_with_poi_not_in_train_vocab": 0,
+          "users_not_in_train": 0
+        },
+        "test": {
+          "rows": 6003,
+          "users": 509,
+          "pois": 2137,
+          "trajectories": 935,
+          "traj_min_len": 2,
+          "traj_len_ge2": 935,
+          "traj_len_ge5": 799,
+          "evidence_samples": 935,
+          "candidate_recall_stage2": 0.746524,
+          "candidate_empty": 0,
+          "target_missing": 0,
+          "rows_with_poi_not_in_train_vocab": 0,
+          "users_not_in_train": 0
+        }
+      },
+      "checks": {
+        "chronology_violations": 0,
+        "graph_x_pois": 5273,
+        "train_pois_missing_from_graph_x": 0
+      }
+    },
+    "TKY": {
+      "splits": {
+        "train": {
+          "rows": 101124,
+          "users": 1159,
+          "pois": 6070,
+          "trajectories": 12319,
+          "traj_min_len": 5,
+          "traj_len_ge2": 12319,
+          "traj_len_ge5": 12319,
+          "evidence_samples": 12319,
+          "candidate_recall_stage2": 0.856157,
+          "candidate_empty": 0,
+          "target_missing": 0
+        },
+        "val": {
+          "rows": 11264,
+          "users": 795,
+          "pois": 3008,
+          "trajectories": 1568,
+          "traj_min_len": 2,
+          "traj_len_ge2": 1568,
+          "traj_len_ge5": 1516,
+          "evidence_samples": 1568,
+          "candidate_recall_stage2": 0.846939,
+          "candidate_empty": 0,
+          "target_missing": 0,
+          "rows_with_poi_not_in_train_vocab": 0,
+          "users_not_in_train": 0
+        },
+        "test": {
+          "rows": 15922,
+          "users": 932,
+          "pois": 3431,
+          "trajectories": 2236,
+          "traj_min_len": 2,
+          "traj_len_ge2": 2236,
+          "traj_len_ge5": 2132,
+          "evidence_samples": 2236,
+          "candidate_recall_stage2": 0.833631,
+          "candidate_empty": 0,
+          "target_missing": 0,
+          "rows_with_poi_not_in_train_vocab": 0,
+          "users_not_in_train": 0
+        }
+      },
+      "checks": {
+        "chronology_violations": 0,
+        "graph_x_pois": 6070,
+        "train_pois_missing_from_graph_x": 0
+      }
+    }
+  },
+  "issues": []
+}

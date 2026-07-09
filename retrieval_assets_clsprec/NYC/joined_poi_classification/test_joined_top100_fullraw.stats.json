@@ -1,0 +1,21 @@
+{
+  "split": "test",
+  "paths": {
+    "raw": "retrieval_assets_clsprec/NYC/semantic_poi_sft/stage1_test_raw_semantic.jsonl",
+    "preference": "retrieval_assets_clsprec/NYC/evidence/preference_evidence_test.jsonl",
+    "refined": "retrieval_assets_clsprec/NYC/refined_prompts_decision/lora_a_decision_v2_test_full_outputs.jsonl",
+    "graph": "retrieval_assets_clsprec/NYC/double_llm/graphrag_semantic_edges_v2_top100_test_candidates.jsonl"
+  },
+  "graph_top_k": 100,
+  "counts": {
+    "rows": 884,
+    "refined_confidence_None": 884,
+    "refined_useful_None": 884,
+    "graph_target_in_topk": 573
+  },
+  "allow_missing_refined": true,
+  "refined_file_missing": true,
+  "graph_target_in_topk_ratio": 0.64819,
+  "parquet_output": "retrieval_assets_clsprec/NYC/joined_poi_classification/test_joined_top100.parquet",
+  "parquet_bytes": 3024710
+}
