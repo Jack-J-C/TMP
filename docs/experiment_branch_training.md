@@ -68,21 +68,44 @@ pip install \
 
 如果目标机器 CUDA/PyTorch 版本不同，优先按照目标机器显卡和 CUDA 环境安装合适的 PyTorch，然后再安装其余包。
 
-## 3. 需要推送到远端的训练资产
+## 3. experiment 分支最小训练资产
 
-训练需要以下文件：
+`experiment` 分支只需要保证“拉下来即可启动训练”，不需要包含预处理、数据转换、raw data 或候选池重建流程。
 
-- 代码：`src/`
-- 配置：`config/`
+最小训练闭环需要以下文件：
+
+- 训练代码：
+  - `src/poi_reranker/train_teamlora_reranker_raat.py`
+  - `src/poi_reranker/build_teamlora_reranker_groups.py`
+  - `src/poi_reranker/evaluate_teamlora_reranker.py`
+- 三城训练配置：
+  - `config/train_nyc_semprofile_simuser_v2.yaml`
+  - `config/train_sin_semprofile_simuser_v2.yaml`
+  - `config/train_tky_semprofile_simuser_v2.yaml`
 - 当前说明文档：`docs/experiment_branch_training.md`
-- 三城 joined parquet：
-  - `retrieval_assets_clsprec/NYC/joined_poi_classification/{train,val,test}_joined_top100.parquet`
-  - `retrieval_assets_clsprec/SIN/joined_poi_classification/{train,val,test}_joined_top100.parquet`
-  - `retrieval_assets_getnext_clsprec/TKY/joined_poi_classification/{train,val,test}_joined_top100.parquet`
+- 三城训练/验证 parquet：
+  - `retrieval_assets_clsprec/NYC/joined_poi_classification/train_joined_top100.parquet`
+  - `retrieval_assets_clsprec/NYC/joined_poi_classification/val_joined_top100.parquet`
+  - `retrieval_assets_clsprec/SIN/joined_poi_classification/train_joined_top100.parquet`
+  - `retrieval_assets_clsprec/SIN/joined_poi_classification/val_joined_top100.parquet`
+  - `retrieval_assets_getnext_clsprec/TKY/joined_poi_classification/train_joined_top100.parquet`
+  - `retrieval_assets_getnext_clsprec/TKY/joined_poi_classification/val_joined_top100.parquet`
 - 三城 semantic map：
   - `retrieval_assets_clsprec/NYC/double_llm/semantic_poi_ids.jsonl`
   - `retrieval_assets_clsprec/SIN/double_llm/semantic_poi_ids.jsonl`
   - `retrieval_assets_getnext_clsprec/TKY/double_llm/semantic_poi_ids.jsonl`
+
+不需要推送：
+
+- `raw_data/`
+- `dataset_clsprec/`
+- `dataset_getnext_clsprec/`
+- `retrieval_assets_*/evidence/`
+- `retrieval_assets_*/semantic_poi_sft/`
+- `retrieval_assets_*/poi_sft/`
+- `retrieval_assets_*/joined_poi_classification/*_fullraw.parquet`
+- `logs/`
+- `models/`
 
 其中 semantic map 总共大约 4.2MB，可以推送到远端。由于 `.gitignore` 仍忽略 `*.jsonl`，这几个文件需要使用 `git add -f`。
 
@@ -93,10 +116,23 @@ cd /mnt/data/users/yyl/TMP
 
 git switch -c experiment 2>/dev/null || git switch experiment
 
-git add .gitignore config src scripts docs
-git add retrieval_assets_clsprec/NYC/joined_poi_classification/*.parquet
-git add retrieval_assets_clsprec/SIN/joined_poi_classification/*.parquet
-git add retrieval_assets_getnext_clsprec/TKY/joined_poi_classification/*.parquet
+git add .gitignore
+git add docs/experiment_branch_training.md
+
+git add config/train_nyc_semprofile_simuser_v2.yaml
+git add config/train_sin_semprofile_simuser_v2.yaml
+git add config/train_tky_semprofile_simuser_v2.yaml
+
+git add src/poi_reranker/train_teamlora_reranker_raat.py
+git add src/poi_reranker/build_teamlora_reranker_groups.py
+git add src/poi_reranker/evaluate_teamlora_reranker.py
+
+git add retrieval_assets_clsprec/NYC/joined_poi_classification/train_joined_top100.parquet
+git add retrieval_assets_clsprec/NYC/joined_poi_classification/val_joined_top100.parquet
+git add retrieval_assets_clsprec/SIN/joined_poi_classification/train_joined_top100.parquet
+git add retrieval_assets_clsprec/SIN/joined_poi_classification/val_joined_top100.parquet
+git add retrieval_assets_getnext_clsprec/TKY/joined_poi_classification/train_joined_top100.parquet
+git add retrieval_assets_getnext_clsprec/TKY/joined_poi_classification/val_joined_top100.parquet
 
 git add -f retrieval_assets_clsprec/NYC/double_llm/semantic_poi_ids.jsonl
 git add -f retrieval_assets_clsprec/SIN/double_llm/semantic_poi_ids.jsonl
@@ -105,6 +141,15 @@ git add -f retrieval_assets_getnext_clsprec/TKY/double_llm/semantic_poi_ids.json
 git status
 git commit -m "Prepare experiment branch training assets"
 git push -u origin experiment
+```
+
+如果误 add 了不需要的目录，可以在提交前取消暂存：
+
+```bash
+git restore --staged raw_data dataset_clsprec dataset_getnext_clsprec 2>/dev/null || true
+git restore --staged retrieval_assets_clsprec retrieval_assets_getnext_clsprec 2>/dev/null || true
+
+# 然后重新执行上面的精确 git add 命令。
 ```
 
 如果后续只是修改了本文档，也可以单独提交：
@@ -199,7 +244,7 @@ NCCL_P2P_DISABLE=1 \
 NCCL_IB_DISABLE=1 \
 nohup $PY src/poi_reranker/train_teamlora_reranker_raat.py \
   --config config/train_nyc_semprofile_simuser_v2.yaml \
-  > logs/train_nyc_semprofile_simuser_v2_yaml.log 2>&1 &
+  > logs/train_nyc_routed_lora3_semprofile_simuser_v2_yaml.log 2>&1 &
 ```
 
 SIN：
@@ -210,7 +255,7 @@ NCCL_P2P_DISABLE=1 \
 NCCL_IB_DISABLE=1 \
 nohup $PY src/poi_reranker/train_teamlora_reranker_raat.py \
   --config config/train_sin_semprofile_simuser_v2.yaml \
-  > logs/train_sin_semprofile_simuser_v2_yaml.log 2>&1 &
+  > logs/train_sin_routed_lora3_semprofile_simuser_v2_yaml.log 2>&1 &
 ```
 
 TKY：
@@ -221,13 +266,13 @@ NCCL_P2P_DISABLE=1 \
 NCCL_IB_DISABLE=1 \
 nohup $PY src/poi_reranker/train_teamlora_reranker_raat.py \
   --config config/train_tky_semprofile_simuser_v2.yaml \
-  > logs/train_tky_semprofile_simuser_v2_yaml.log 2>&1 &
+  > logs/train_tky_routed_lora3_semprofile_simuser_v2_yaml.log 2>&1 &
 ```
 
 查看日志：
 
 ```bash
-tail -f logs/train_nyc_semprofile_simuser_v2_yaml.log
+tail -f logs/train_nyc_routed_lora3_semprofile_simuser_v2_yaml.log
 ```
 
 ## 8. 当前评估口径
@@ -261,6 +306,7 @@ eval_candidate_limit: null
 
 ```yaml
 max_length: 1440
+lora_num: 3
 train_negatives: 15
 hard_negatives: 12
 use_graph_prior: true
@@ -272,4 +318,4 @@ raat_mode: target_mask_2view
 input_template: semantic_profile_simuser_v1
 ```
 
-当前 semantic template 已经让 `pref`、`graph`、`refine` 三个专家看到不同输入，且 RAAT 会影响 graph expert 的输入视角。
+当前版本采用 routed TeamLoRA：每个候选只构造一份输入，`lora_num: 3` 表示每个目标 Linear 层内部有 3 个隐式 LoRA 专家，由 router 根据 hidden state 动态分配权重。RAAT 仍由 `raat_mode` 控制，但 clean/masked/demote/hardneg 都是单路输入视图，不再执行 `pref`、`graph`、`refine` 三次 encoder forward。

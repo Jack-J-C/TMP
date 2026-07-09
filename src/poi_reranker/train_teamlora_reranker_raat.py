@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Train a 3-expert TeamLoRA candidate-wise POI reranker with 2-view RAAT.
+"""Train a routed TeamLoRA candidate-wise POI reranker with RAAT.
 
 The model ranks GraphRAG TopK candidates. Training samples a small candidate
 list per query; evaluation ranks the full candidate list from each group.
@@ -29,7 +29,6 @@ from build_teamlora_reranker_groups import build_group, load_semantic_map
 
 
 TARGET_MODULES = ["q_proj", "k_proj", "v_proj", "o_proj", "gate_proj", "up_proj", "down_proj"]
-EXPERTS = ("pref", "graph", "refine")
 
 
 def parse_args() -> argparse.Namespace:
@@ -37,7 +36,7 @@ def parse_args() -> argparse.Namespace:
     bootstrap.add_argument("--config", type=Path, default=None, help="Optional YAML config file. CLI args override config values.")
     config_args, _ = bootstrap.parse_known_args()
 
-    p = argparse.ArgumentParser(description="Train 3-expert TeamLoRA candidate-wise reranker with 2-view RAAT.")
+    p = argparse.ArgumentParser(description="Train a routed TeamLoRA candidate-wise reranker with RAAT.")
     p.add_argument("--config", type=Path, default=None, help="Optional YAML config file. CLI args override config values.")
     p.add_argument("--train-groups", type=Path, default=None, help="Optional prebuilt grouped TopK JSONL.")
     p.add_argument("--val-groups", type=Path, default=None, help="Optional prebuilt grouped TopK JSONL.")
@@ -48,7 +47,7 @@ def parse_args() -> argparse.Namespace:
     p.add_argument("--output-dir", type=Path, default=None)
     p.add_argument("--top-k", type=int, default=100)
     p.add_argument("--max-length", type=int, default=1024)
-    p.add_argument("--expert-mode", choices=["anonymous", "named"], default="anonymous")
+    p.add_argument("--expert-mode", choices=["anonymous", "named"], default="anonymous", help="Deprecated compatibility flag; routed TeamLoRA uses one input view.")
     p.add_argument("--input-template", choices=["legacy", "semantic_profile_v1", "semantic_profile_simuser_v1"], default="legacy")
     p.add_argument("--train-negatives", type=int, default=31)
     p.add_argument("--hard-negatives", type=int, default=16, help="Prefer negatives from top ranks.")
@@ -64,6 +63,7 @@ def parse_args() -> argparse.Namespace:
     p.add_argument("--warmup-ratio", type=float, default=0.03)
     p.add_argument("--lora-r", type=int, default=8)
     p.add_argument("--lora-alpha", type=int, default=16)
+    p.add_argument("--lora-num", type=int, default=3, help="Number of routed TeamLoRA experts inside each adapted Linear layer.")
     p.add_argument("--lora-dropout", type=float, default=0.05)
     p.add_argument("--scorer-dropout", type=float, default=0.1)
     p.add_argument("--graph-feature-dim", type=int, default=32)
@@ -268,11 +268,30 @@ def format_semantic_profile_text(
     group: Dict[str, Any],
     candidate: Dict[str, Any],
     include_similar_profile: bool = False,
-    expert: str = "pref",
+    expert: str = "single",
     view: str = "clean",
 ) -> str:
     hypothesis = candidate_hypothesis(candidate)
     profile = user_semantic_profile_text(group)
+    if expert == "single":
+        parts = [
+            "[TASK=CANDIDATE_RERANK]",
+            "Score whether this POI is the user's next check-in. Use recent behavior, long-term profile, similar-user signal when present, and structured graph features.",
+            "[RECENT_CONTEXT]",
+            strip_preference_section(group.get("pref_text")),
+            "[USER_SEMANTIC_PROFILE]",
+            profile,
+        ]
+        append_similar_profile(parts, group, include_similar_profile)
+        parts.extend(
+            [
+                "[GRAPH_VIEW]",
+                semantic_graph_view_text(view),
+                "[POI_HYPOTHESIS]",
+                hypothesis,
+            ]
+        )
+        return "\n\n".join(parts)
     if expert == "graph":
         return "\n\n".join(
             [
@@ -373,7 +392,7 @@ def format_anonymous_text(
     candidate: Dict[str, Any],
     view: str = "clean",
     input_template: str = "legacy",
-    expert: str = "pref",
+    expert: str = "single",
 ) -> str:
     if input_template == "semantic_profile_v1":
         return format_semantic_profile_text(group, candidate, include_similar_profile=False, expert=expert, view=view)
@@ -455,47 +474,37 @@ class RerankerGroupDataset(Dataset):
                 key=lambda item: float(item.get("rank") or 999.0),
             )[: max(0, self.hardneg_promote_topn)]
         }
-        if self.expert_mode == "named":
-            pref_texts = [format_pref_text(group, c) for c in selected]
-            graph_texts = [format_graph_text(group, c, masked=False) for c in selected]
-            graph_texts_masked = [format_graph_text(group, c, masked=(int(c.get("label") or 0) == 1)) for c in selected]
-            graph_texts_demote = [format_graph_text(group, c, masked=(int(c.get("label") or 0) == 1)) for c in selected]
-            graph_texts_hardneg = [format_graph_text(group, c, masked=False) for c in selected]
-            refine_texts = [format_refine_text(group, c) for c in selected]
-        else:
-            pref_texts = [format_anonymous_text(group, c, view="clean", input_template=self.input_template, expert="pref") for c in selected]
-            graph_texts = [format_anonymous_text(group, c, view="clean", input_template=self.input_template, expert="graph") for c in selected]
-            graph_texts_masked = [
-                format_anonymous_text(
-                    group,
-                    c,
-                    view="target_mask" if int(c.get("label") or 0) == 1 else "clean",
-                    input_template=self.input_template,
-                    expert="graph",
-                )
-                for c in selected
-            ]
-            graph_texts_demote = [
-                format_anonymous_text(
-                    group,
-                    c,
-                    view="target_demote" if int(c.get("label") or 0) == 1 else "clean",
-                    input_template=self.input_template,
-                    expert="graph",
-                )
-                for c in selected
-            ]
-            graph_texts_hardneg = [
-                format_anonymous_text(
-                    group,
-                    c,
-                    view="hardneg_promote" if c.get("poi_id") in hardneg_ids else "clean",
-                    input_template=self.input_template,
-                    expert="graph",
-                )
-                for c in selected
-            ]
-            refine_texts = [format_anonymous_text(group, c, view="clean", input_template=self.input_template, expert="refine") for c in selected]
+        texts = [format_anonymous_text(group, c, view="clean", input_template=self.input_template, expert="single") for c in selected]
+        texts_masked = [
+            format_anonymous_text(
+                group,
+                c,
+                view="target_mask" if int(c.get("label") or 0) == 1 else "clean",
+                input_template=self.input_template,
+                expert="single",
+            )
+            for c in selected
+        ]
+        texts_demote = [
+            format_anonymous_text(
+                group,
+                c,
+                view="target_demote" if int(c.get("label") or 0) == 1 else "clean",
+                input_template=self.input_template,
+                expert="single",
+            )
+            for c in selected
+        ]
+        texts_hardneg = [
+            format_anonymous_text(
+                group,
+                c,
+                view="hardneg_promote" if c.get("poi_id") in hardneg_ids else "clean",
+                input_template=self.input_template,
+                expert="single",
+            )
+            for c in selected
+        ]
         demote_features = []
         hardneg_features = []
         for candidate in selected:
@@ -521,12 +530,10 @@ class RerankerGroupDataset(Dataset):
             "sample_id": group.get("sample_id"),
             "target_pos": target_pos,
             "target_in_candidates": bool(group.get("target_in_candidates")),
-            "pref_texts": pref_texts,
-            "graph_texts": graph_texts,
-            "graph_texts_masked": graph_texts_masked,
-            "graph_texts_demote": graph_texts_demote,
-            "graph_texts_hardneg": graph_texts_hardneg,
-            "refine_texts": refine_texts,
+            "texts": texts,
+            "texts_masked": texts_masked,
+            "texts_demote": texts_demote,
+            "texts_hardneg": texts_hardneg,
             "graph_features": [graph_features(c, masked=False) for c in selected],
             "graph_features_masked": [graph_features(c, masked=(int(c.get("label") or 0) == 1)) for c in selected],
             "graph_features_demote": demote_features,
@@ -539,8 +546,17 @@ def collate_groups(features: Sequence[Dict[str, Any]]) -> Dict[str, Any]:
     return {"groups": list(features)}
 
 
-class MultiExpertLoRALinear(nn.Linear):
-    def __init__(self, source: nn.Linear, r: int, alpha: int, dropout: float, experts: Sequence[str]):
+class ShapleyRouter(nn.Module):
+    def __init__(self, in_features: int, num_experts: int):
+        super().__init__()
+        self.fc = nn.Linear(in_features, num_experts, bias=False)
+
+    def forward(self, x: torch.Tensor) -> torch.Tensor:
+        return F.softmax(self.fc(x), dim=-1)
+
+
+class RoutedTeamLoRALinear(nn.Linear):
+    def __init__(self, source: nn.Linear, r: int, alpha: int, dropout: float, lora_num: int):
         super().__init__(source.in_features, source.out_features, bias=source.bias is not None)
         self.weight = source.weight
         if source.bias is not None:
@@ -549,32 +565,36 @@ class MultiExpertLoRALinear(nn.Linear):
         if self.bias is not None:
             self.bias.requires_grad = False
         self.r = int(r)
-        self.scaling = float(alpha) / float(r)
-        self.active_expert = experts[0]
+        self.lora_num = int(lora_num)
+        if self.r <= 0:
+            raise ValueError(f"lora rank must be positive, got {r}")
+        if self.lora_num <= 0:
+            raise ValueError(f"lora_num must be positive, got {lora_num}")
+        self.scaling = float(alpha) / float(self.r) * float(self.lora_num)
         self.dropout = nn.Dropout(dropout) if dropout > 0 else nn.Identity()
-        self.lora_A = nn.ModuleDict({name: nn.Linear(source.in_features, r, bias=False) for name in experts})
-        self.lora_B = nn.ModuleDict({name: nn.Linear(r, source.out_features, bias=False) for name in experts})
+        self.lora_route = ShapleyRouter(source.in_features, self.lora_num)
+        self.lora_A = nn.Linear(source.in_features, self.r * self.lora_num, bias=False)
+        self.lora_B = nn.ModuleList([nn.Linear(self.r, source.out_features, bias=False) for _ in range(self.lora_num)])
         self.reset_lora_parameters()
 
     def reset_lora_parameters(self) -> None:
-        for name in self.lora_A:
-            nn.init.kaiming_uniform_(self.lora_A[name].weight, a=math.sqrt(5))
-            nn.init.zeros_(self.lora_B[name].weight)
-
-    def set_active_expert(self, name: str) -> None:
-        self.active_expert = name
+        nn.init.kaiming_uniform_(self.lora_A.weight, a=math.sqrt(5))
+        nn.init.kaiming_uniform_(self.lora_route.fc.weight, a=math.sqrt(5))
+        for layer in self.lora_B:
+            nn.init.zeros_(layer.weight)
 
     def forward(self, x: torch.Tensor) -> torch.Tensor:
         result = F.linear(x, self.weight, self.bias)
-        lora_a = self.lora_A[self.active_expert]
-        lora_b = self.lora_B[self.active_expert]
-        lora_input = x.to(dtype=lora_a.weight.dtype)
-        a = self.dropout(lora_a(lora_input))
-        delta = lora_b(a) * self.scaling
+        lora_input = x.to(dtype=self.lora_A.weight.dtype)
+        route = self.lora_route(lora_input)
+        a = self.dropout(self.lora_A(lora_input)) * self.scaling
+        route = torch.repeat_interleave(route, repeats=self.r, dim=-1)
+        b_weight = torch.cat([layer.weight for layer in self.lora_B], dim=-1).t()
+        delta = (a * route) @ b_weight
         return result + delta.to(dtype=result.dtype)
 
 
-def inject_multi_expert_lora(model: nn.Module, r: int, alpha: int, dropout: float) -> int:
+def inject_routed_teamlora(model: nn.Module, r: int, alpha: int, dropout: float, lora_num: int) -> int:
     replaced = 0
     for key in list(dict(model.named_modules()).keys()):
         if not any(key.endswith(target) for target in TARGET_MODULES):
@@ -585,19 +605,13 @@ def inject_multi_expert_lora(model: nn.Module, r: int, alpha: int, dropout: floa
         parent_name = ".".join(key.split(".")[:-1])
         child_name = key.split(".")[-1]
         parent = model.get_submodule(parent_name) if parent_name else model
-        module = MultiExpertLoRALinear(target, r=r, alpha=alpha, dropout=dropout, experts=EXPERTS)
+        module = RoutedTeamLoRALinear(target, r=r, alpha=alpha, dropout=dropout, lora_num=lora_num)
         module.to(target.weight.device, dtype=target.weight.dtype)
         setattr(parent, child_name, module)
         replaced += 1
     if replaced == 0:
         raise ValueError(f"No LoRA target modules replaced: {TARGET_MODULES}")
     return replaced
-
-
-def set_active_expert(model: nn.Module, expert: str) -> None:
-    for module in model.modules():
-        if isinstance(module, MultiExpertLoRALinear):
-            module.set_active_expert(expert)
 
 
 class TeamLoRAReranker(nn.Module):
@@ -628,12 +642,6 @@ class TeamLoRAReranker(nn.Module):
             nn.GELU(),
             nn.Dropout(dropout),
         )
-        self.gate = nn.Sequential(
-            nn.Linear(hidden_size * 3 + graph_feature_dim, hidden_size),
-            nn.GELU(),
-            nn.Dropout(dropout),
-            nn.Linear(hidden_size, 3),
-        )
         self.scorer = nn.Sequential(
             nn.Linear(hidden_size + graph_feature_dim, hidden_size),
             nn.GELU(),
@@ -647,8 +655,7 @@ class TeamLoRAReranker(nn.Module):
         if hasattr(self.base_model, "enable_input_require_grads"):
             self.base_model.enable_input_require_grads()
 
-    def encode(self, input_ids: torch.Tensor, attention_mask: torch.Tensor, expert: str) -> torch.Tensor:
-        set_active_expert(self.base_model, expert)
+    def encode(self, input_ids: torch.Tensor, attention_mask: torch.Tensor) -> torch.Tensor:
         outputs = self.base_model(input_ids=input_ids, attention_mask=attention_mask, return_dict=True)
         hidden = outputs.last_hidden_state
         last_idx = attention_mask.long().sum(dim=1).clamp(min=1) - 1
@@ -656,24 +663,13 @@ class TeamLoRAReranker(nn.Module):
 
     def forward(
         self,
-        pref_batch: Dict[str, torch.Tensor],
-        graph_batch: Dict[str, torch.Tensor],
-        refine_batch: Dict[str, torch.Tensor],
+        text_batch: Dict[str, torch.Tensor],
         graph_features_tensor: torch.Tensor,
         return_parts: bool = False,
     ) -> torch.Tensor | tuple[torch.Tensor, torch.Tensor, torch.Tensor, torch.Tensor]:
-        h_pref = self.encode(pref_batch["input_ids"], pref_batch["attention_mask"], "pref")
-        h_graph = self.encode(graph_batch["input_ids"], graph_batch["attention_mask"], "graph")
-        h_refine = self.encode(refine_batch["input_ids"], refine_batch["attention_mask"], "refine")
-        gf = self.graph_feature_proj(graph_features_tensor.to(h_pref.device, dtype=torch.float32))
-        h_pref = h_pref.float()
-        h_graph = h_graph.float()
-        h_refine = h_refine.float()
-        gate_logits = self.gate(torch.cat([h_pref, h_graph, h_refine, gf], dim=-1))
-        gate = F.softmax(gate_logits, dim=-1)
-        stacked = torch.stack([h_pref, h_graph, h_refine], dim=1)
-        fused = (stacked * gate.unsqueeze(-1)).sum(dim=1)
-        residual = self.scorer(torch.cat([fused, gf], dim=-1)).squeeze(-1)
+        h = self.encode(text_batch["input_ids"], text_batch["attention_mask"]).float()
+        gf = self.graph_feature_proj(graph_features_tensor.to(h.device, dtype=torch.float32))
+        residual = self.scorer(torch.cat([h, gf], dim=-1)).squeeze(-1)
         if not self.use_graph_prior:
             return residual
         prior = self.graph_prior(graph_features_tensor).to(residual.device, dtype=residual.dtype)
@@ -745,28 +741,24 @@ def make_batch(
     device: torch.device,
     masked: bool = False,
     view: str = "clean",
-) -> tuple[Dict[str, torch.Tensor], Dict[str, torch.Tensor], Dict[str, torch.Tensor], torch.Tensor, List[int], List[int]]:
-    pref_texts, sizes = flatten_group_texts(groups, "pref_texts")
+) -> tuple[Dict[str, torch.Tensor], torch.Tensor, List[int], List[int]]:
     if view == "target_mask" or masked:
-        graph_key = "graph_texts_masked"
+        text_key = "texts_masked"
         feat_key = "graph_features_masked"
     elif view == "target_demote":
-        graph_key = "graph_texts_demote"
+        text_key = "texts_demote"
         feat_key = "graph_features_demote"
     elif view == "hardneg_promote":
-        graph_key = "graph_texts_hardneg"
+        text_key = "texts_hardneg"
         feat_key = "graph_features_hardneg"
     else:
-        graph_key = "graph_texts"
+        text_key = "texts"
         feat_key = "graph_features"
-    graph_texts, _ = flatten_group_texts(groups, graph_key)
-    refine_texts, _ = flatten_group_texts(groups, "refine_texts")
+    texts, sizes = flatten_group_texts(groups, text_key)
     graph_features_flat = [feat for group in groups for feat in group[feat_key]]
     target_positions = [int(group["target_pos"]) for group in groups]
     return (
-        encode_texts(tokenizer, pref_texts, max_length, device),
-        encode_texts(tokenizer, graph_texts, max_length, device),
-        encode_texts(tokenizer, refine_texts, max_length, device),
+        encode_texts(tokenizer, texts, max_length, device),
         torch.tensor(graph_features_flat, dtype=torch.float32, device=device),
         sizes,
         target_positions,
@@ -776,12 +768,10 @@ def make_batch(
 def slice_eval_group(group: Dict[str, Any], start: int, end: int) -> Dict[str, Any]:
     sliced = dict(group)
     keys = [
-        "pref_texts",
-        "graph_texts",
-        "graph_texts_masked",
-        "graph_texts_demote",
-        "graph_texts_hardneg",
-        "refine_texts",
+        "texts",
+        "texts_masked",
+        "texts_demote",
+        "texts_hardneg",
         "graph_features",
         "graph_features_masked",
         "graph_features_demote",
@@ -803,16 +793,16 @@ def score_eval_group(
     device: torch.device,
     candidate_batch_size: int | None,
 ) -> torch.Tensor:
-    size = len(group["pref_texts"])
+    size = len(group["texts"])
     if candidate_batch_size is None or candidate_batch_size <= 0 or candidate_batch_size >= size:
-        pref, graph, refine, gf, _, _ = make_batch(tokenizer, [group], max_length, device, masked=False)
-        return model(pref, graph, refine, gf).detach()
+        text, gf, _, _ = make_batch(tokenizer, [group], max_length, device, masked=False)
+        return model(text, gf).detach()
 
     chunks: List[torch.Tensor] = []
     for start in range(0, size, candidate_batch_size):
         chunk_group = slice_eval_group(group, start, min(size, start + candidate_batch_size))
-        pref, graph, refine, gf, _, _ = make_batch(tokenizer, [chunk_group], max_length, device, masked=False)
-        chunks.append(model(pref, graph, refine, gf).detach())
+        text, gf, _, _ = make_batch(tokenizer, [chunk_group], max_length, device, masked=False)
+        chunks.append(model(text, gf).detach())
     return torch.cat(chunks, dim=0)
 
 
@@ -962,7 +952,7 @@ def main() -> None:
     base_model.config.use_cache = False
     for param in base_model.parameters():
         param.requires_grad = False
-    replaced = inject_multi_expert_lora(base_model, r=args.lora_r, alpha=args.lora_alpha, dropout=args.lora_dropout)
+    replaced = inject_routed_teamlora(base_model, r=args.lora_r, alpha=args.lora_alpha, dropout=args.lora_dropout, lora_num=args.lora_num)
     model = TeamLoRAReranker(
         base_model=base_model,
         hidden_size=int(base_model.config.hidden_size),
@@ -1030,7 +1020,7 @@ def main() -> None:
     scheduler = get_cosine_schedule_with_warmup(optimizer, num_warmup_steps=warmup_steps, num_training_steps=total_steps)
 
     metadata = vars(args).copy()
-    metadata.update({"experts": list(EXPERTS), "target_modules": TARGET_MODULES, "data_summary": data_summary})
+    metadata.update({"teamlora_variant": "routed", "target_modules": TARGET_MODULES, "data_summary": data_summary})
     (args.output_dir / "metadata.json").write_text(json.dumps(metadata, ensure_ascii=False, indent=2, default=str) + "\n", encoding="utf-8")
     tokenizer.save_pretrained(args.output_dir / "tokenizer")
 
@@ -1045,9 +1035,9 @@ def main() -> None:
     while global_step < total_steps:
         for batch_idx, batch in enumerate(train_loader):
             groups = batch["groups"]
-            pref, graph, refine, gf, sizes, target_positions = make_batch(tokenizer, groups, args.max_length, device, masked=False)
+            text, gf, sizes, target_positions = make_batch(tokenizer, groups, args.max_length, device, masked=False)
             with torch.cuda.amp.autocast(enabled=scaler_enabled, dtype=torch.float16):
-                output = model(pref, graph, refine, gf, return_parts=bool(args.use_graph_prior and args.residual_l2 > 0))
+                output = model(text, gf, return_parts=bool(args.use_graph_prior and args.residual_l2 > 0))
                 if isinstance(output, tuple):
                     scores, residual, _, _ = output
                     residual_penalty = residual.float().pow(2).mean() * float(args.residual_l2)
@@ -1059,16 +1049,16 @@ def main() -> None:
                     continue
                 loss = clean_loss
                 if args.raat_mode == "target_mask_2view":
-                    pref_m, graph_m, refine_m, gf_m, sizes_m, target_positions_m = make_batch(tokenizer, groups, args.max_length, device, view="target_mask")
-                    scores_m = model(pref_m, graph_m, refine_m, gf_m)
+                    text_m, gf_m, sizes_m, target_positions_m = make_batch(tokenizer, groups, args.max_length, device, view="target_mask")
+                    scores_m = model(text_m, gf_m)
                     hard_loss = group_loss(scores_m, sizes_m, target_positions_m)
                     if hard_loss is not None:
                         loss = torch.maximum(clean_loss, hard_loss)
                 elif args.raat_mode == "graph_3view":
                     losses = [clean_loss]
                     for view in ("target_demote", "hardneg_promote"):
-                        pref_v, graph_v, refine_v, gf_v, sizes_v, target_positions_v = make_batch(tokenizer, groups, args.max_length, device, view=view)
-                        scores_v = model(pref_v, graph_v, refine_v, gf_v)
+                        text_v, gf_v, sizes_v, target_positions_v = make_batch(tokenizer, groups, args.max_length, device, view=view)
+                        scores_v = model(text_v, gf_v)
                         view_loss = group_loss(scores_v, sizes_v, target_positions_v)
                         if view_loss is not None:
                             losses.append(view_loss)

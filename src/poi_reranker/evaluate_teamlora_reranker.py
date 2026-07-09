@@ -17,7 +17,7 @@ from train_teamlora_reranker_raat import (
     TeamLoRAReranker,
     collate_groups,
     evaluate,
-    inject_multi_expert_lora,
+    inject_routed_teamlora,
     load_groups,
     load_groups_from_joined,
 )
@@ -107,11 +107,12 @@ def main() -> None:
     base_model.config.use_cache = False
     for param in base_model.parameters():
         param.requires_grad = False
-    inject_multi_expert_lora(
+    inject_routed_teamlora(
         base_model,
         r=int(metadata.get("lora_r", 8)),
         alpha=int(metadata.get("lora_alpha", 16)),
         dropout=float(metadata.get("lora_dropout", 0.05)),
+        lora_num=int(metadata.get("lora_num", 3)),
     )
     model = TeamLoRAReranker(
         base_model=base_model,
