@@ -74,6 +74,12 @@ def parse_args() -> argparse.Namespace:
     p.add_argument("--residual-bound-mode", choices=["none", "tanh", "clamp"], default="none")
     p.add_argument("--residual-bound-value", type=float, default=0.3)
     p.add_argument("--raat-mode", choices=["none", "target_mask_2view", "graph_3view"], default="target_mask_2view")
+    p.add_argument(
+        "--raat-memory-mode",
+        choices=["joint", "recompute_hard"],
+        default="joint",
+        help="joint keeps all RAAT view graphs until backward; recompute_hard selects the hardest view with no_grad then backprops only that view.",
+    )
     p.add_argument("--target-demote-rank-min", type=int, default=50)
     p.add_argument("--target-demote-score-scale", type=float, default=0.2)
     p.add_argument("--hardneg-promote-topn", type=int, default=3)
@@ -734,6 +740,24 @@ def group_loss(scores: torch.Tensor, sizes: Sequence[int], target_positions: Seq
     return torch.stack(losses).mean()
 
 
+def model_group_loss(
+    model: "TeamLoRAReranker",
+    text_batch: Dict[str, torch.Tensor],
+    graph_features_tensor: torch.Tensor,
+    sizes: Sequence[int],
+    target_positions: Sequence[int],
+    residual_l2: float = 0.0,
+) -> tuple[torch.Tensor | None, torch.Tensor | None]:
+    output = model(text_batch, graph_features_tensor, return_parts=bool(model.use_graph_prior and residual_l2 > 0))
+    residual_penalty = None
+    if isinstance(output, tuple):
+        scores, residual, _, _ = output
+        residual_penalty = residual.float().pow(2).mean() * float(residual_l2)
+    else:
+        scores = output
+    return group_loss(scores, sizes, target_positions), residual_penalty
+
+
 def make_batch(
     tokenizer: Any,
     groups: Sequence[Dict[str, Any]],
@@ -976,6 +1000,10 @@ def main() -> None:
     print(
         json.dumps(
             {
+                "teamlora_variant": "routed",
+                "lora_num": int(args.lora_num),
+                "raat_mode": str(args.raat_mode),
+                "raat_memory_mode": str(args.raat_memory_mode),
                 "model_graph_prior": bool(model.use_graph_prior),
                 "model_graph_prior_type": str(model.graph_prior_type),
                 "model_residual_bound_mode": str(model.residual_bound_mode),
@@ -1035,34 +1063,52 @@ def main() -> None:
     while global_step < total_steps:
         for batch_idx, batch in enumerate(train_loader):
             groups = batch["groups"]
-            text, gf, sizes, target_positions = make_batch(tokenizer, groups, args.max_length, device, masked=False)
-            with torch.cuda.amp.autocast(enabled=scaler_enabled, dtype=torch.float16):
-                output = model(text, gf, return_parts=bool(args.use_graph_prior and args.residual_l2 > 0))
-                if isinstance(output, tuple):
-                    scores, residual, _, _ = output
-                    residual_penalty = residual.float().pow(2).mean() * float(args.residual_l2)
-                else:
-                    scores = output
-                    residual_penalty = None
-                clean_loss = group_loss(scores, sizes, target_positions)
-                if clean_loss is None:
-                    continue
-                loss = clean_loss
+            if args.raat_mode != "none" and args.raat_memory_mode == "recompute_hard":
+                candidate_views = ["clean"]
                 if args.raat_mode == "target_mask_2view":
-                    text_m, gf_m, sizes_m, target_positions_m = make_batch(tokenizer, groups, args.max_length, device, view="target_mask")
-                    scores_m = model(text_m, gf_m)
-                    hard_loss = group_loss(scores_m, sizes_m, target_positions_m)
-                    if hard_loss is not None:
-                        loss = torch.maximum(clean_loss, hard_loss)
+                    candidate_views.append("target_mask")
                 elif args.raat_mode == "graph_3view":
-                    losses = [clean_loss]
-                    for view in ("target_demote", "hardneg_promote"):
+                    candidate_views.extend(["target_demote", "hardneg_promote"])
+                best_view = "clean"
+                best_loss = -float("inf")
+                with torch.no_grad():
+                    for view in candidate_views:
                         text_v, gf_v, sizes_v, target_positions_v = make_batch(tokenizer, groups, args.max_length, device, view=view)
-                        scores_v = model(text_v, gf_v)
-                        view_loss = group_loss(scores_v, sizes_v, target_positions_v)
+                        with torch.cuda.amp.autocast(enabled=scaler_enabled, dtype=torch.float16):
+                            view_loss, _ = model_group_loss(model, text_v, gf_v, sizes_v, target_positions_v, residual_l2=0.0)
                         if view_loss is not None:
-                            losses.append(view_loss)
-                    loss = torch.stack(losses).max()
+                            view_loss_value = float(view_loss.detach().cpu().item())
+                            if view_loss_value > best_loss:
+                                best_loss = view_loss_value
+                                best_view = view
+                text, gf, sizes, target_positions = make_batch(tokenizer, groups, args.max_length, device, view=best_view)
+                with torch.cuda.amp.autocast(enabled=scaler_enabled, dtype=torch.float16):
+                    loss, residual_penalty = model_group_loss(model, text, gf, sizes, target_positions, residual_l2=args.residual_l2)
+                    if loss is None:
+                        continue
+                    if residual_penalty is not None:
+                        loss = loss + residual_penalty
+                    loss = loss / max(1, args.grad_accum)
+            else:
+                text, gf, sizes, target_positions = make_batch(tokenizer, groups, args.max_length, device, masked=False)
+                with torch.cuda.amp.autocast(enabled=scaler_enabled, dtype=torch.float16):
+                    clean_loss, residual_penalty = model_group_loss(model, text, gf, sizes, target_positions, residual_l2=args.residual_l2)
+                    if clean_loss is None:
+                        continue
+                    loss = clean_loss
+                    if args.raat_mode == "target_mask_2view":
+                        text_m, gf_m, sizes_m, target_positions_m = make_batch(tokenizer, groups, args.max_length, device, view="target_mask")
+                        hard_loss, _ = model_group_loss(model, text_m, gf_m, sizes_m, target_positions_m, residual_l2=0.0)
+                        if hard_loss is not None:
+                            loss = torch.maximum(clean_loss, hard_loss)
+                    elif args.raat_mode == "graph_3view":
+                        losses = [clean_loss]
+                        for view in ("target_demote", "hardneg_promote"):
+                            text_v, gf_v, sizes_v, target_positions_v = make_batch(tokenizer, groups, args.max_length, device, view=view)
+                            view_loss, _ = model_group_loss(model, text_v, gf_v, sizes_v, target_positions_v, residual_l2=0.0)
+                            if view_loss is not None:
+                                losses.append(view_loss)
+                        loss = torch.stack(losses).max()
                 if residual_penalty is not None:
                     loss = loss + residual_penalty
                 loss = loss / max(1, args.grad_accum)

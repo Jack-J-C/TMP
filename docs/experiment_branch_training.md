@@ -315,7 +315,8 @@ residual_l2: 0.001
 residual_bound_mode: tanh
 residual_bound_value: 1.0
 raat_mode: target_mask_2view
+raat_memory_mode: recompute_hard
 input_template: semantic_profile_simuser_v1
 ```
 
-当前版本采用 routed TeamLoRA：每个候选只构造一份输入，`lora_num: 3` 表示每个目标 Linear 层内部有 3 个隐式 LoRA 专家，由 router 根据 hidden state 动态分配权重。RAAT 仍由 `raat_mode` 控制，但 clean/masked/demote/hardneg 都是单路输入视图，不再执行 `pref`、`graph`、`refine` 三次 encoder forward。
+当前版本采用 routed TeamLoRA：每个候选只构造一份输入，`lora_num: 3` 表示每个目标 Linear 层内部有 3 个隐式 LoRA 专家，由 router 根据 hidden state 动态分配权重。RAAT 仍由 `raat_mode` 控制，但 clean/masked/demote/hardneg 都是单路输入视图，不再执行 `pref`、`graph`、`refine` 三次 encoder forward。`raat_memory_mode: recompute_hard` 会先用 `no_grad` 选择更难 view，再只对该 view 重算并反传，避免 clean/masked 两套训练图同时占显存。

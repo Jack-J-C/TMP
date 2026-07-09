@@ -2,7 +2,7 @@ train_joined: retrieval_assets_clsprec/SIN/joined_poi_classification/train_joine
 val_joined: retrieval_assets_clsprec/SIN/joined_poi_classification/val_joined_top100.parquet
 semantic_map: retrieval_assets_clsprec/SIN/double_llm/semantic_poi_ids.jsonl
 base_model: models/Llama-3.2-1B-Instruct
-output_dir: models/poi-teamlora-reranker-sin-routed-lora3-semprofile-simuser-l1440-priorres-raat-step600-v4
+output_dir: models/poi-teamlora-reranker-sin-routed-lora3-semprofile-simuser-l1440-priorres-raatmem-step600-v5
 
 top_k: 100
 max_length: 1440
@@ -33,6 +33,7 @@ residual_bound_mode: tanh
 residual_bound_value: 1.0
 
 raat_mode: target_mask_2view
+raat_memory_mode: recompute_hard
 val_hit_only: true
 eval_candidate_limit: null
 eval_candidate_batch_size: 2
