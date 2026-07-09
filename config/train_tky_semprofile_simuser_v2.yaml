@@ -1,16 +1,16 @@
 train_joined: retrieval_assets_getnext_clsprec/TKY/joined_poi_classification/train_joined_top100.parquet
 val_joined: retrieval_assets_getnext_clsprec/TKY/joined_poi_classification/val_joined_top100.parquet
 semantic_map: retrieval_assets_getnext_clsprec/TKY/double_llm/semantic_poi_ids.jsonl
-base_model: /mnt/data/users/yyl/TMP/models/Llama-3.2-1B-Instruct
-output_dir: models/poi-teamlora-reranker-tky-anon3-semprofile-simuser-l1280-priorres-step600-v2
+base_model: models/Llama-3.2-1B-Instruct
+output_dir: models/poi-teamlora-reranker-tky-anon3-semprofile-simuser-l1440-priorres-raat-step600-v3
 
 top_k: 100
 max_length: 1440
 input_template: semantic_profile_simuser_v1
 expert_mode: anonymous
 
-train_negatives: 7
-hard_negatives: 6
+train_negatives: 15
+hard_negatives: 12
 batch_groups: 1
 grad_accum: 8
 max_steps: 600
@@ -26,12 +26,12 @@ graph_feature_dim: 32
 
 use_graph_prior: true
 graph_prior_type: rank_log
-residual_alpha_init: 0.1
-residual_l2: 0.01
+residual_alpha_init: 0.3
+residual_l2: 0.001
 residual_bound_mode: tanh
-residual_bound_value: 0.3
+residual_bound_value: 1.0
 
-raat_mode: none
+raat_mode: target_mask_2view
 val_hit_only: true
 eval_candidate_limit: null
 eval_candidate_batch_size: 2

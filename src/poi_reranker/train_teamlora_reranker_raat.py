@@ -231,27 +231,82 @@ def strip_preference_section(text: Any) -> str:
     return "\n".join(out).strip()
 
 
-def format_semantic_profile_text(group: Dict[str, Any], candidate: Dict[str, Any], include_similar_profile: bool = False) -> str:
+def candidate_hypothesis(candidate: Dict[str, Any]) -> str:
     hypothesis = str(candidate.get("candidate_hypothesis_text") or "").strip()
     if not hypothesis:
         hypothesis = (
             f"id={candidate.get('poi_id')}; semantic_id={candidate.get('semantic_id')}; "
             f"category={candidate.get('category')}; geo_cell={candidate.get('geo_cell')}"
         )
+    return hypothesis
+
+
+def user_semantic_profile_text(group: Dict[str, Any]) -> str:
     profile = str(group.get("user_semantic_profile") or "").strip()
-    if not profile:
-        profile = "Long-term category affinity:\n- none\n\nRevisit affinity:\n- none\n\nGeo routine:\n- none\n\nTemporal routine:\n- none_available"
+    if profile:
+        return profile
+    return "Long-term category affinity:\n- none\n\nRevisit affinity:\n- none\n\nGeo routine:\n- none\n\nTemporal routine:\n- none_available"
+
+
+def append_similar_profile(parts: List[str], group: Dict[str, Any], include_similar_profile: bool) -> None:
+    similar_profile = gated_similar_user_profile(group) if include_similar_profile else ""
+    if similar_profile:
+        parts.extend(["[SIMILAR_USER_SEMANTIC_PROFILE]", similar_profile])
+
+
+def semantic_graph_view_text(view: str) -> str:
+    if view == "target_mask":
+        return "Structured graph evidence is masked for robustness; score from semantic and preference consistency."
+    if view == "target_demote":
+        return "Structured graph evidence is demoted for robustness; check whether semantic and preference evidence can recover this candidate."
+    if view == "hardneg_promote":
+        return "Structured graph evidence is stress-tested with a promoted hard negative; reject graph-supported but semantically weak candidates."
+    return "Structured graph rank, score, and source features are provided separately; judge whether that graph signal is trustworthy."
+
+
+def format_semantic_profile_text(
+    group: Dict[str, Any],
+    candidate: Dict[str, Any],
+    include_similar_profile: bool = False,
+    expert: str = "pref",
+    view: str = "clean",
+) -> str:
+    hypothesis = candidate_hypothesis(candidate)
+    profile = user_semantic_profile_text(group)
+    if expert == "graph":
+        return "\n\n".join(
+            [
+                "[TASK=CANDIDATE_RERANK]",
+                "[EXPERT=GRAPH]",
+                "Estimate whether graph retrieval should support this candidate. Use structured graph features, not raw rank text.",
+                "[GRAPH_VIEW]",
+                semantic_graph_view_text(view),
+                "[POI_HYPOTHESIS]",
+                hypothesis,
+            ]
+        )
+    if expert == "refine":
+        parts = [
+            "[TASK=CANDIDATE_RERANK]",
+            "[EXPERT=SEMANTIC_MATCH]",
+            "Estimate whether the candidate is semantically compatible with the user's long-term routine.",
+            "[USER_SEMANTIC_PROFILE]",
+            profile,
+        ]
+        append_similar_profile(parts, group, include_similar_profile)
+        parts.extend(["[POI_HYPOTHESIS]", hypothesis])
+        return "\n\n".join(parts)
+
     parts = [
         "[TASK=CANDIDATE_RERANK]",
+        "[EXPERT=PREF]",
         "Estimate whether the POI hypothesis matches the user's next check-in.",
         "[RECENT_CONTEXT]",
         strip_preference_section(group.get("pref_text")),
         "[USER_SEMANTIC_PROFILE]",
         profile,
     ]
-    similar_profile = gated_similar_user_profile(group) if include_similar_profile else ""
-    if similar_profile:
-        parts.extend(["[SIMILAR_USER_SEMANTIC_PROFILE]", similar_profile])
+    append_similar_profile(parts, group, include_similar_profile)
     parts.extend(["[POI_HYPOTHESIS]", hypothesis])
     return "\n\n".join(parts)
 
@@ -318,11 +373,12 @@ def format_anonymous_text(
     candidate: Dict[str, Any],
     view: str = "clean",
     input_template: str = "legacy",
+    expert: str = "pref",
 ) -> str:
     if input_template == "semantic_profile_v1":
-        return format_semantic_profile_text(group, candidate, include_similar_profile=False)
+        return format_semantic_profile_text(group, candidate, include_similar_profile=False, expert=expert, view=view)
     if input_template == "semantic_profile_simuser_v1":
-        return format_semantic_profile_text(group, candidate, include_similar_profile=True)
+        return format_semantic_profile_text(group, candidate, include_similar_profile=True, expert=expert, view=view)
     if view == "target_mask":
         graph_evidence = "Graph evidence is target-masked for adversarial robustness."
     elif view == "target_demote":
@@ -407,14 +463,15 @@ class RerankerGroupDataset(Dataset):
             graph_texts_hardneg = [format_graph_text(group, c, masked=False) for c in selected]
             refine_texts = [format_refine_text(group, c) for c in selected]
         else:
-            pref_texts = [format_anonymous_text(group, c, view="clean", input_template=self.input_template) for c in selected]
-            graph_texts = [format_anonymous_text(group, c, view="clean", input_template=self.input_template) for c in selected]
+            pref_texts = [format_anonymous_text(group, c, view="clean", input_template=self.input_template, expert="pref") for c in selected]
+            graph_texts = [format_anonymous_text(group, c, view="clean", input_template=self.input_template, expert="graph") for c in selected]
             graph_texts_masked = [
                 format_anonymous_text(
                     group,
                     c,
                     view="target_mask" if int(c.get("label") or 0) == 1 else "clean",
                     input_template=self.input_template,
+                    expert="graph",
                 )
                 for c in selected
             ]
@@ -424,6 +481,7 @@ class RerankerGroupDataset(Dataset):
                     c,
                     view="target_demote" if int(c.get("label") or 0) == 1 else "clean",
                     input_template=self.input_template,
+                    expert="graph",
                 )
                 for c in selected
             ]
@@ -433,10 +491,11 @@ class RerankerGroupDataset(Dataset):
                     c,
                     view="hardneg_promote" if c.get("poi_id") in hardneg_ids else "clean",
                     input_template=self.input_template,
+                    expert="graph",
                 )
                 for c in selected
             ]
-            refine_texts = [format_anonymous_text(group, c, view="clean", input_template=self.input_template) for c in selected]
+            refine_texts = [format_anonymous_text(group, c, view="clean", input_template=self.input_template, expert="refine") for c in selected]
         demote_features = []
         hardneg_features = []
         for candidate in selected:
