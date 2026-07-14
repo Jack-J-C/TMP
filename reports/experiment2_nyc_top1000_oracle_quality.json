@@ -1,0 +1,391 @@
+{
+  "top_k": 100,
+  "model_type": "linear",
+  "hidden_dim": null,
+  "dropout": null,
+  "tail_threshold": 2,
+  "head_threshold": 10,
+  "tail_loss_weight": 2.0,
+  "mid_loss_weight": 1.25,
+  "tail_score_boost": 0.0,
+  "tail_quota": 0,
+  "popularity_source": null,
+  "popularity_summary": {
+    "known_pois": 0,
+    "tail_pois": 0,
+    "mid_pois": 0,
+    "head_pois": 0,
+    "max_target_count": 0
+  },
+  "feature_names": [
+    "bias",
+    "rank_prior",
+    "rank_norm",
+    "log_graph_score",
+    "source_count",
+    "train_target_pop_log",
+    "train_target_pop_inv",
+    "is_tail_poi",
+    "is_mid_poi",
+    "is_head_poi",
+    "legacy_candidate",
+    "same_last_poi",
+    "same_last_category",
+    "evidence_transition",
+    "evidence_geo",
+    "history",
+    "graph_last_poi",
+    "graph_last_category",
+    "graph_last2_poi",
+    "graph_last2_category",
+    "graph_user",
+    "graph_user_category",
+    "graph_covisit",
+    "semantic_edge_last_semantic_id",
+    "semantic_edge_last_category_token",
+    "semantic_edge_last_geo_cell",
+    "semantic_edge_last2_semantic_id",
+    "semantic_edge_user_last_category_token",
+    "semantic_edge_user_last_geo_cell",
+    "semantic_edge_semantic_covisit",
+    "semantic_category",
+    "semantic_token",
+    "semantic_cell",
+    "time_slot",
+    "time_weekday_slot",
+    "global"
+  ],
+  "weights": {
+    "bias": 0.0,
+    "rank_prior": 4.0,
+    "rank_norm": 2.0,
+    "log_graph_score": 1.0,
+    "source_count": 0.20000000298023224,
+    "train_target_pop_log": 0.0,
+    "train_target_pop_inv": 0.0,
+    "is_tail_poi": 0.10000000149011612,
+    "is_mid_poi": 0.0,
+    "is_head_poi": 0.0,
+    "legacy_candidate": 0.0,
+    "same_last_poi": 0.0,
+    "same_last_category": 0.0,
+    "evidence_transition": 0.0,
+    "evidence_geo": 0.0,
+    "history": 0.0,
+    "graph_last_poi": 0.0,
+    "graph_last_category": 0.0,
+    "graph_last2_poi": 0.0,
+    "graph_last2_category": 0.0,
+    "graph_user": 0.0,
+    "graph_user_category": 0.0,
+    "graph_covisit": 0.0,
+    "semantic_edge_last_semantic_id": 0.0,
+    "semantic_edge_last_category_token": 0.0,
+    "semantic_edge_last_geo_cell": 0.0,
+    "semantic_edge_last2_semantic_id": 0.0,
+    "semantic_edge_user_last_category_token": 0.0,
+    "semantic_edge_user_last_geo_cell": 0.0,
+    "semantic_edge_semantic_covisit": 0.0,
+    "semantic_category": 0.0,
+    "semantic_token": 0.0,
+    "semantic_cell": 0.0,
+    "time_slot": 0.0,
+    "time_weekday_slot": 0.0,
+    "global": 0.0
+  },
+  "train": null,
+  "eval": {
+    "val": {
+      "graph_order_topk": {
+        "evaluated": 579,
+        "candidate_hit_all": 0.6839378238341969,
+        "hit@1": 0.2141623488773748,
+        "hit@5": 0.35578583765112265,
+        "hit@10": 0.45077720207253885,
+        "hit@20": 0.5457685664939551,
+        "hit@50": 0.6269430051813472,
+        "hit@100": 0.6839378238341969,
+        "mrr": 0.28777970719164203,
+        "rank_when_hit": {
+          "mean": 14.26010101010101,
+          "p50": 5,
+          "p90": 45,
+          "max": 96
+        }
+      },
+      "learned_rescore_topk": {
+        "evaluated": 579,
+        "candidate_hit_all": 0.6839378238341969,
+        "hit@1": 0.2141623488773748,
+        "hit@5": 0.35578583765112265,
+        "hit@10": 0.44905008635578586,
+        "hit@20": 0.5457685664939551,
+        "hit@50": 0.6234887737478412,
+        "hit@100": 0.6839378238341969,
+        "mrr": 0.28780681106618544,
+        "rank_when_hit": {
+          "mean": 14.323232323232324,
+          "p50": 5,
+          "p90": 45,
+          "max": 97
+        }
+      },
+      "wide_pool_oracle": {
+        "evaluated": 579,
+        "candidate_hit_all": 0.8100172711571675,
+        "hit@1": 0.2141623488773748,
+        "hit@5": 0.35578583765112265,
+        "hit@10": 0.45077720207253885,
+        "hit@20": 0.5457685664939551,
+        "hit@50": 0.626943005181347,
+        "hit@100": 0.6839378238341968,
+        "mrr": 0.28836936921794243,
+        "rank_when_hit": {
+          "mean": 67.9680170575693,
+          "p50": 8,
+          "p90": 168,
+          "max": 992
+        }
+      },
+      "graph_order_topk_by_popularity": {
+        "tail": {
+          "evaluated": 579,
+          "candidate_hit_all": 0.6839378238341969,
+          "hit@1": 0.2141623488773748,
+          "hit@5": 0.35578583765112265,
+          "hit@10": 0.45077720207253885,
+          "hit@20": 0.5457685664939551,
+          "hit@50": 0.6269430051813472,
+          "hit@100": 0.6839378238341969,
+          "mrr": 0.28777970719164203,
+          "rank_when_hit": {
+            "mean": 14.26010101010101,
+            "p50": 5,
+            "p90": 45,
+            "max": 96
+          }
+        }
+      },
+      "learned_rescore_topk_by_popularity": {
+        "tail": {
+          "evaluated": 579,
+          "candidate_hit_all": 0.6839378238341969,
+          "hit@1": 0.2141623488773748,
+          "hit@5": 0.35578583765112265,
+          "hit@10": 0.44905008635578586,
+          "hit@20": 0.5457685664939551,
+          "hit@50": 0.6234887737478412,
+          "hit@100": 0.6839378238341969,
+          "mrr": 0.28780681106618544,
+          "rank_when_hit": {
+            "mean": 14.323232323232324,
+            "p50": 5,
+            "p90": 45,
+            "max": 97
+          }
+        }
+      },
+      "wide_pool_oracle_by_popularity": {
+        "tail": {
+          "evaluated": 579,
+          "candidate_hit_all": 0.8100172711571675,
+          "hit@1": 0.2141623488773748,
+          "hit@5": 0.35578583765112265,
+          "hit@10": 0.45077720207253885,
+          "hit@20": 0.5457685664939551,
+          "hit@50": 0.626943005181347,
+          "hit@100": 0.6839378238341968,
+          "mrr": 0.28836936921794243,
+          "rank_when_hit": {
+            "mean": 67.9680170575693,
+            "p50": 8,
+            "p90": 168,
+            "max": 992
+          }
+        }
+      },
+      "rescued_by_rescore": 0,
+      "lost_by_rescore": 0,
+      "candidate_size": {
+        "mean": 967.0276338514681,
+        "min": 432,
+        "max": 1000
+      },
+      "topk_source_counts_graph_order": {
+        "semantic_category": 43024,
+        "semantic_token": 43019,
+        "graph_covisit": 33049,
+        "semantic_edge_semantic_covisit": 33049,
+        "semantic_cell": 19557,
+        "legacy_candidate": 19489,
+        "semantic_edge_last_category_token": 17604,
+        "graph_last_category": 17086,
+        "global": 10678,
+        "graph_user": 9949,
+        "semantic_edge_last_geo_cell": 8132,
+        "history": 6783,
+        "graph_user_category": 6744,
+        "evidence_geo": 6418,
+        "time_slot": 6268,
+        "same_last_category": 6162,
+        "same_last_poi": 3569,
+        "semantic_edge_user_last_geo_cell": 3128,
+        "graph_last2_category": 2424,
+        "time_weekday_slot": 1961,
+        "semantic_edge_user_last_category_token": 1540,
+        "graph_last_poi": 1246,
+        "semantic_edge_last_semantic_id": 1246,
+        "graph_last2_poi": 150,
+        "semantic_edge_last2_semantic_id": 150
+      },
+      "delta_hit@topk": 0.0,
+      "path": "retrieval_assets_clsprec/NYC/double_llm/graphrag_semantic_edges_v2_top1000_val_Candidates.jsonl"
+    },
+    "test": {
+      "graph_order_topk": {
+        "evaluated": 884,
+        "candidate_hit_all": 0.6481900452488688,
+        "hit@1": 0.16289592760180996,
+        "hit@5": 0.3393665158371041,
+        "hit@10": 0.417420814479638,
+        "hit@20": 0.5022624434389141,
+        "hit@50": 0.5893665158371041,
+        "hit@100": 0.6481900452488688,
+        "mrr": 0.24680775904136656,
+        "rank_when_hit": {
+          "mean": 15.369982547993018,
+          "p50": 5,
+          "p90": 47,
+          "max": 100
+        }
+      },
+      "learned_rescore_topk": {
+        "evaluated": 884,
+        "candidate_hit_all": 0.6459276018099548,
+        "hit@1": 0.16289592760180996,
+        "hit@5": 0.3393665158371041,
+        "hit@10": 0.417420814479638,
+        "hit@20": 0.502262443438914,
+        "hit@50": 0.5882352941176471,
+        "hit@100": 0.6459276018099548,
+        "mrr": 0.24677673796402175,
+        "rank_when_hit": {
+          "mean": 15.229422066549912,
+          "p50": 5,
+          "p90": 47,
+          "max": 99
+        }
+      },
+      "wide_pool_oracle": {
+        "evaluated": 884,
+        "candidate_hit_all": 0.8020361990950227,
+        "hit@1": 0.16289592760180996,
+        "hit@5": 0.3393665158371041,
+        "hit@10": 0.417420814479638,
+        "hit@20": 0.502262443438914,
+        "hit@50": 0.5893665158371041,
+        "hit@100": 0.6481900452488688,
+        "mrr": 0.24751207120391042,
+        "rank_when_hit": {
+          "mean": 80.46967559943583,
+          "p50": 9,
+          "p90": 205,
+          "max": 990
+        }
+      },
+      "graph_order_topk_by_popularity": {
+        "tail": {
+          "evaluated": 884,
+          "candidate_hit_all": 0.6481900452488688,
+          "hit@1": 0.16289592760180996,
+          "hit@5": 0.3393665158371041,
+          "hit@10": 0.417420814479638,
+          "hit@20": 0.5022624434389141,
+          "hit@50": 0.5893665158371041,
+          "hit@100": 0.6481900452488688,
+          "mrr": 0.24680775904136656,
+          "rank_when_hit": {
+            "mean": 15.369982547993018,
+            "p50": 5,
+            "p90": 47,
+            "max": 100
+          }
+        }
+      },
+      "learned_rescore_topk_by_popularity": {
+        "tail": {
+          "evaluated": 884,
+          "candidate_hit_all": 0.6459276018099548,
+          "hit@1": 0.16289592760180996,
+          "hit@5": 0.3393665158371041,
+          "hit@10": 0.417420814479638,
+          "hit@20": 0.502262443438914,
+          "hit@50": 0.5882352941176471,
+          "hit@100": 0.6459276018099548,
+          "mrr": 0.24677673796402175,
+          "rank_when_hit": {
+            "mean": 15.229422066549912,
+            "p50": 5,
+            "p90": 47,
+            "max": 99
+          }
+        }
+      },
+      "wide_pool_oracle_by_popularity": {
+        "tail": {
+          "evaluated": 884,
+          "candidate_hit_all": 0.8020361990950227,
+          "hit@1": 0.16289592760180996,
+          "hit@5": 0.3393665158371041,
+          "hit@10": 0.417420814479638,
+          "hit@20": 0.502262443438914,
+          "hit@50": 0.5893665158371041,
+          "hit@100": 0.6481900452488688,
+          "mrr": 0.24751207120391042,
+          "rank_when_hit": {
+            "mean": 80.46967559943583,
+            "p50": 9,
+            "p90": 205,
+            "max": 990
+          }
+        }
+      },
+      "rescued_by_rescore": 0,
+      "lost_by_rescore": 2,
+      "candidate_size": {
+        "mean": 968.2828054298642,
+        "min": 416,
+        "max": 1000
+      },
+      "topk_source_counts_graph_order": {
+        "semantic_category": 64983,
+        "semantic_token": 64966,
+        "graph_covisit": 48231,
+        "semantic_edge_semantic_covisit": 48231,
+        "legacy_candidate": 30345,
+        "semantic_cell": 29419,
+        "semantic_edge_last_category_token": 25518,
+        "graph_last_category": 24828,
+        "global": 15927,
+        "graph_user": 12482,
+        "semantic_edge_last_geo_cell": 12276,
+        "evidence_geo": 10331,
+        "history": 9723,
+        "time_slot": 9578,
+        "same_last_category": 9505,
+        "graph_user_category": 8562,
+        "same_last_poi": 5408,
+        "graph_last2_category": 3671,
+        "semantic_edge_user_last_geo_cell": 3599,
+        "time_weekday_slot": 3031,
+        "semantic_edge_user_last_category_token": 2024,
+        "graph_last_poi": 1953,
+        "semantic_edge_last_semantic_id": 1953,
+        "graph_last2_poi": 204,
+        "semantic_edge_last2_semantic_id": 204
+      },
+      "delta_hit@topk": -0.002262443438914019,
+      "path": "retrieval_assets_clsprec/NYC/double_llm/graphrag_semantic_edges_v2_top1000_test_Candidates.jsonl"
+    }
+  }
+}

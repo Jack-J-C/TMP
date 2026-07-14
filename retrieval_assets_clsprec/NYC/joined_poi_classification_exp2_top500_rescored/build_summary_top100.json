@@ -1,0 +1,104 @@
+{
+  "semantic_map": "retrieval_assets_clsprec/NYC/double_llm/semantic_poi_ids.jsonl",
+  "graph_top_k": 100,
+  "format": "parquet",
+  "similar_profile": {
+    "enabled": true,
+    "model": "models/bge-m3",
+    "query_source": "recent_profile",
+    "k": 20,
+    "min_sim": 0.35,
+    "bank_rows": 4502,
+    "splits": {
+      "train": {
+        "rows": 4502,
+        "with_neighbors": 4502,
+        "has_signal": 4502,
+        "own_profile_insufficient": 823
+      },
+      "val": {
+        "rows": 579,
+        "with_neighbors": 579,
+        "has_signal": 579,
+        "own_profile_insufficient": 2
+      },
+      "test": {
+        "rows": 884,
+        "with_neighbors": 884,
+        "has_signal": 884,
+        "own_profile_insufficient": 7
+      }
+    }
+  },
+  "splits": {
+    "train": {
+      "split": "train",
+      "paths": {
+        "raw": "retrieval_assets_clsprec/NYC/semantic_poi_sft/stage1_train_raw_semantic.jsonl",
+        "preference": "retrieval_assets_clsprec/NYC/evidence/preference_evidence_train.jsonl",
+        "refined": "retrieval_assets_clsprec/NYC/refined_prompts_decision/lora_a_decision_v2_train_full_outputs.jsonl",
+        "graph": "retrieval_assets_clsprec/NYC/double_llm/experiment2_top500_best_rescored/train_learned_top100_candidates.jsonl"
+      },
+      "graph_top_k": 100,
+      "counts": {
+        "rows": 4502,
+        "refined_confidence_None": 4502,
+        "refined_useful_None": 4502,
+        "graph_target_in_topk": 3378
+      },
+      "allow_missing_refined": true,
+      "refined_file_missing": true,
+      "graph_candidates_dir": "retrieval_assets_clsprec/NYC/double_llm/experiment2_top500_best_rescored",
+      "graph_candidate_template": "{split}_learned_top{graph_top_k}_candidates.jsonl",
+      "graph_target_in_topk_ratio": 0.750333,
+      "parquet_output": "retrieval_assets_clsprec/NYC/joined_poi_classification_exp2_top500_rescored/train_joined_top100.parquet",
+      "parquet_bytes": 14509962
+    },
+    "val": {
+      "split": "val",
+      "paths": {
+        "raw": "retrieval_assets_clsprec/NYC/semantic_poi_sft/stage1_val_raw_semantic.jsonl",
+        "preference": "retrieval_assets_clsprec/NYC/evidence/preference_evidence_val.jsonl",
+        "refined": "retrieval_assets_clsprec/NYC/refined_prompts_decision/lora_a_decision_v2_val_full_outputs.jsonl",
+        "graph": "retrieval_assets_clsprec/NYC/double_llm/experiment2_top500_best_rescored/val_learned_top100_candidates.jsonl"
+      },
+      "graph_top_k": 100,
+      "counts": {
+        "rows": 579,
+        "refined_confidence_None": 579,
+        "refined_useful_None": 579,
+        "graph_target_in_topk": 433
+      },
+      "allow_missing_refined": true,
+      "refined_file_missing": true,
+      "graph_candidates_dir": "retrieval_assets_clsprec/NYC/double_llm/experiment2_top500_best_rescored",
+      "graph_candidate_template": "{split}_learned_top{graph_top_k}_candidates.jsonl",
+      "graph_target_in_topk_ratio": 0.747841,
+      "parquet_output": "retrieval_assets_clsprec/NYC/joined_poi_classification_exp2_top500_rescored/val_joined_top100.parquet",
+      "parquet_bytes": 2199090
+    },
+    "test": {
+      "split": "test",
+      "paths": {
+        "raw": "retrieval_assets_clsprec/NYC/semantic_poi_sft/stage1_test_raw_semantic.jsonl",
+        "preference": "retrieval_assets_clsprec/NYC/evidence/preference_evidence_test.jsonl",
+        "refined": "retrieval_assets_clsprec/NYC/refined_prompts_decision/lora_a_decision_v2_test_full_outputs.jsonl",
+        "graph": "retrieval_assets_clsprec/NYC/double_llm/experiment2_top500_best_rescored/test_learned_top100_candidates.jsonl"
+      },
+      "graph_top_k": 100,
+      "counts": {
+        "rows": 884,
+        "refined_confidence_None": 884,
+        "refined_useful_None": 884,
+        "graph_target_in_topk": 637
+      },
+      "allow_missing_refined": true,
+      "refined_file_missing": true,
+      "graph_candidates_dir": "retrieval_assets_clsprec/NYC/double_llm/experiment2_top500_best_rescored",
+      "graph_candidate_template": "{split}_learned_top{graph_top_k}_candidates.jsonl",
+      "graph_target_in_topk_ratio": 0.720588,
+      "parquet_output": "retrieval_assets_clsprec/NYC/joined_poi_classification_exp2_top500_rescored/test_joined_top100.parquet",
+      "parquet_bytes": 3233461
+    }
+  }
+}

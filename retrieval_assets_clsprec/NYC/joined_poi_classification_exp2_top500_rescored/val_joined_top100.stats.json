@@ -1,0 +1,40 @@
+{
+  "split": "val",
+  "source": "retrieval_assets_clsprec/NYC/joined_poi_classification_exp2_top500_rescored/val_joined_top100_fullraw.parquet",
+  "output": "retrieval_assets_clsprec/NYC/joined_poi_classification_exp2_top500_rescored/val_joined_top100.parquet",
+  "rows": 579,
+  "policy": {
+    "trajectory_lines": 12,
+    "transitions": 6,
+    "nearby": 6,
+    "top_categories": 4,
+    "revisited_pois": 4
+  },
+  "bytes": 2062361,
+  "token_stats": {
+    "raw_text_before": {
+      "mean": 1464.05,
+      "p50": 1456.0,
+      "p90": 1630.2,
+      "p95": 1716.0,
+      "p99": 1872.74,
+      "max": 2011
+    },
+    "raw_text_after": {
+      "mean": 711.22,
+      "p50": 692.0,
+      "p90": 856.6,
+      "p95": 902.1,
+      "p99": 937.22,
+      "max": 961
+    },
+    "candidate_start_after": {
+      "mean": 748.22,
+      "p50": 729.0,
+      "p90": 893.6,
+      "p95": 939.1,
+      "p99": 974.22,
+      "max": 998
+    }
+  }
+}

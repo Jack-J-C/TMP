@@ -25,6 +25,17 @@ def parse_args() -> argparse.Namespace:
     p.add_argument("--base-dir", type=Path, default=Path("retrieval_assets/NewYork"))
     p.add_argument("--output-dir", type=Path, default=Path("retrieval_assets/NewYork/joined_poi_classification"))
     p.add_argument("--semantic-map", type=Path, default=None)
+    p.add_argument(
+        "--graph-candidates-dir",
+        type=Path,
+        default=None,
+        help="Optional directory containing custom candidate JSONL files.",
+    )
+    p.add_argument(
+        "--graph-candidate-template",
+        default="{split}_learned_top{graph_top_k}_candidates.jsonl",
+        help="Filename template used with --graph-candidates-dir.",
+    )
     p.add_argument("--graph-top-k", type=int, default=30)
     p.add_argument("--splits", nargs="+", default=["train", "val"], choices=["train", "val", "test"])
     p.add_argument("--format", choices=["parquet", "jsonl", "both"], default="parquet")
@@ -546,12 +557,21 @@ def build_input_text(row: Dict[str, Any]) -> str:
     return "\n\n".join(parts)
 
 
-def split_paths(base_dir: Path, split: str) -> Dict[str, Path]:
+def split_paths(
+    base_dir: Path,
+    split: str,
+    graph_top_k: int = 100,
+    graph_candidates_dir: Path | None = None,
+    graph_candidate_template: str = "{split}_learned_top{graph_top_k}_candidates.jsonl",
+) -> Dict[str, Path]:
+    graph_path = base_dir / "double_llm" / f"graphrag_semantic_edges_v2_top100_{split}_candidates.jsonl"
+    if graph_candidates_dir is not None:
+        graph_path = graph_candidates_dir / graph_candidate_template.format(split=split, graph_top_k=graph_top_k)
     return {
         "raw": base_dir / "semantic_poi_sft" / f"stage1_{split}_raw_semantic.jsonl",
         "preference": base_dir / "evidence" / f"preference_evidence_{split}.jsonl",
         "refined": base_dir / "refined_prompts_decision" / f"lora_a_decision_v2_{split}_full_outputs.jsonl",
-        "graph": base_dir / "double_llm" / f"graphrag_semantic_edges_v2_top100_{split}_candidates.jsonl",
+        "graph": graph_path,
     }
 
 
@@ -561,8 +581,10 @@ def build_split(
     semantic_map: Dict[str, Dict[str, Any]],
     graph_top_k: int,
     allow_missing_refined: bool = False,
+    graph_candidates_dir: Path | None = None,
+    graph_candidate_template: str = "{split}_learned_top{graph_top_k}_candidates.jsonl",
 ) -> tuple[List[Dict[str, Any]], Dict[str, Any]]:
-    paths = split_paths(base_dir, split)
+    paths = split_paths(base_dir, split, graph_top_k, graph_candidates_dir, graph_candidate_template)
     category_tokens = category_token_lookup(semantic_map)
     preference_by_id = load_by_sample_id(paths["preference"])
     refined_file_missing = not paths["refined"].exists()
@@ -638,6 +660,8 @@ def build_split(
         "counts": dict(counts),
         "allow_missing_refined": bool(allow_missing_refined),
         "refined_file_missing": bool(refined_file_missing),
+        "graph_candidates_dir": str(graph_candidates_dir) if graph_candidates_dir is not None else None,
+        "graph_candidate_template": graph_candidate_template,
         "graph_target_in_topk_ratio": round(counts["graph_target_in_topk"] / counts["rows"], 6) if counts["rows"] else 0.0,
     }
     return rows, stats
@@ -674,7 +698,15 @@ def main() -> None:
     }
     rows_by_split: Dict[str, List[Dict[str, Any]]] = {}
     for split in args.splits:
-        rows, stats = build_split(args.base_dir, split, semantic_map, args.graph_top_k, args.allow_missing_refined)
+        rows, stats = build_split(
+            args.base_dir,
+            split,
+            semantic_map,
+            args.graph_top_k,
+            args.allow_missing_refined,
+            args.graph_candidates_dir,
+            args.graph_candidate_template,
+        )
         rows_by_split[split] = rows
         summary["splits"][split] = stats
     if args.similar_profile:
