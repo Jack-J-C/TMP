@@ -72,6 +72,8 @@ models/poi-teamlora-reranker-sin-routed-lora3-semprofile-simuser-l1440-priorres-
 models/poi-teamlora-reranker-tky-routed-lora3-semprofile-simuser-l1440-priorres-raatmem-step600-v5
 ```
 
+注意：`config/*.yaml` 表示当前准备继续跑的配置；已完成的 NYC v5 best checkpoint 以 checkpoint 内的 `metadata.json` 为准。NYC v5 best 实际训练时使用 `train_negatives=10`、`hard_negatives=8`，而当前 YAML 已调整为 `15/12`。如果要保留旧 v5 结果，继续训练前请改 `output_dir`。
+
 `models/` 默认不推送到 git。另一台机器需要手动准备：
 
 ```text
@@ -122,10 +124,13 @@ docs/
 ```text
 retrieval_assets_clsprec/NYC/joined_poi_classification/train_joined_top100.parquet
 retrieval_assets_clsprec/NYC/joined_poi_classification/val_joined_top100.parquet
+retrieval_assets_clsprec/NYC/joined_poi_classification/test_joined_top100.parquet
 retrieval_assets_clsprec/SIN/joined_poi_classification/train_joined_top100.parquet
 retrieval_assets_clsprec/SIN/joined_poi_classification/val_joined_top100.parquet
+retrieval_assets_clsprec/SIN/joined_poi_classification/test_joined_top100.parquet
 retrieval_assets_getnext_clsprec/TKY/joined_poi_classification/train_joined_top100.parquet
 retrieval_assets_getnext_clsprec/TKY/joined_poi_classification/val_joined_top100.parquet
+retrieval_assets_getnext_clsprec/TKY/joined_poi_classification/test_joined_top100.parquet
 ```
 
 每条样本会由 [build_teamlora_reranker_groups.py](src/poi_reranker/build_teamlora_reranker_groups.py) 转为 group：
@@ -323,6 +328,13 @@ save_steps: 600
 1 positive + 15 negatives = 16 candidates
 ```
 
+已完成的 NYC v5 best checkpoint 是上一版 negatives 设置：
+
+```text
+train_negatives: 10
+hard_negatives: 8
+```
+
 在 `max_length=1440` 且 `raat_mode=target_mask_2view` 下，单步显存主要由：
 
 ```text
@@ -346,6 +358,8 @@ eval_candidate_batch_size: 2
 - 只在 val 中 target 已经进入 GraphRAG Top100 的样本上评估。
 - 每条样本评估完整 100 个候选。
 - `eval_candidate_batch_size: 2` 只是降低评估显存峰值，不改变候选数量。
+
+训练阶段的 val 评估口径是 `val_hit_only=true`，即只衡量 GraphRAG Top100 已召回样本上的重排能力。最终 test 对比使用全量样本口径，不加 `--val-hit-only`，因此会同时反映候选池召回上限 `candidate_hit`。
 
 当前指标：
 
@@ -452,13 +466,75 @@ $PY src/poi_reranker/evaluate_teamlora_reranker.py \
   --attn-implementation sdpa
 ```
 
-如果要完整 val 口径，不要加：
+NYC 全量 test 口径：
+
+```bash
+cd /mnt/data/users/yyl/TMP
+PY=/mnt/data/users/yyl/miniconda3/envs/poi_data/bin/python
+
+CUDA_VISIBLE_DEVICES=0 \
+NCCL_P2P_DISABLE=1 \
+NCCL_IB_DISABLE=1 \
+$PY src/poi_reranker/evaluate_teamlora_reranker.py \
+  --model-dir models/poi-teamlora-reranker-nyc-routed-lora3-semprofile-simuser-l1440-priorres-raatmem-step600-v5 \
+  --checkpoint best \
+  --val-joined retrieval_assets_clsprec/NYC/joined_poi_classification/test_joined_top100.parquet \
+  --semantic-map retrieval_assets_clsprec/NYC/double_llm/semantic_poi_ids.jsonl \
+  --eval-candidate-batch-size 2 \
+  --bf16 \
+  --attn-implementation sdpa \
+  --output-json models/poi-teamlora-reranker-nyc-routed-lora3-semprofile-simuser-l1440-priorres-raatmem-step600-v5/eval_best_test_full_top100.json
+```
+
+如果要完整 val/test 口径，不要加：
 
 ```text
 --val-hit-only
 --eval-candidate-limit
 --max-val-groups
 ```
+
+## NYC Baseline 对比
+
+当前 baseline 适配只改变数据层，不改 CLSPRec / GETNext 模型架构。适配脚本：
+
+```text
+scripts/adapt_nyc_baselines.py
+scripts/run_clsprec_tmp_nyc.py
+scripts/evaluate_getnext_tmp.py
+scripts/watch_gpu0_run_clsprec_nyc.sh
+scripts/watch_gpu1_run_getnext_nyc.sh
+```
+
+GETNext 使用 TMP NYC train/val/test split，并修正 `trajectory_id`，使其以 `user_id` 开头，因为 GETNext 源码会用 `trajectory_id.split("_")[0]` 取用户。
+
+CLSPRec fair-best 版本使用 TMP NYC split，并放宽原始 CLSPRec 的强过滤，使训练/验证/测试样本数更接近 TMP/GETNext：
+
+```text
+current trajectory length >= 3
+at least 1 previous trajectory
+no 7-day history window
+max recent history count = 7
+no future trajectory leakage
+```
+
+NYC full-test 当前结果：
+
+| Model | evaluated | Top5 | Top10 | NDCG5 | NDCG10 | MRR |
+|---|---:|---:|---:|---:|---:|---:|
+| TMP v5 routed TeamLoRA | 884 | 0.3710 | 0.4525 | 0.2808 | 0.3068 | 0.2705 |
+| GETNext TMP-adapted | 855 | 0.3368 | 0.4421 | 0.2498 | 0.2840 | 0.2457 |
+| CLSPRec fair-best | 855 | 0.2795 | 0.3427 | 0.1990 | 0.2190 | 0.1852 |
+
+结果文件：
+
+```text
+models/poi-teamlora-reranker-nyc-routed-lora3-semprofile-simuser-l1440-priorres-raatmem-step600-v5/eval_best_test_full_top100.json
+/mnt/data/users/yyl/GETNext/runs/train/tmp_nyc_getnext/test_metrics.json
+/mnt/data/users/yyl/CLSPRec/results/TMP_NYC_CLSPRec_fair_best_mrr_e50_eval5_test_metrics.json
+```
+
+表中 TMP v5 是 GraphRAG Top100 reranker，GETNext / CLSPRec 是按 TMP NYC split 做的数据层适配 baseline。更稳妥的表述是：在当前 TMP NYC preprocessing / full-test evaluation protocol 下，TMP v5 超过这两个适配 baseline。
 
 ## Experiment 分支跨机器运行
 
@@ -477,9 +553,9 @@ src/poi_reranker/train_teamlora_reranker_raat.py
 src/poi_reranker/build_teamlora_reranker_groups.py
 src/poi_reranker/evaluate_teamlora_reranker.py
 config/*.yaml
-retrieval_assets_clsprec/*/joined_poi_classification/{train,val}_joined_top100.parquet
+retrieval_assets_clsprec/*/joined_poi_classification/{train,val,test}_joined_top100.parquet
 retrieval_assets_clsprec/*/double_llm/semantic_poi_ids.jsonl
-retrieval_assets_getnext_clsprec/TKY/joined_poi_classification/{train,val}_joined_top100.parquet
+retrieval_assets_getnext_clsprec/TKY/joined_poi_classification/{train,val,test}_joined_top100.parquet
 retrieval_assets_getnext_clsprec/TKY/double_llm/semantic_poi_ids.jsonl
 ```
 
@@ -595,6 +671,22 @@ cd /mnt/data/users/yyl/TMP
 git add README.md docs/experiment_branch_training.md
 git add config/train_nyc_semprofile_simuser_v2.yaml config/train_sin_semprofile_simuser_v2.yaml config/train_tky_semprofile_simuser_v2.yaml
 git add src/poi_reranker/train_teamlora_reranker_raat.py src/poi_reranker/evaluate_teamlora_reranker.py
+git add scripts/adapt_nyc_baselines.py scripts/run_clsprec_tmp_nyc.py scripts/evaluate_getnext_tmp.py
+git add scripts/watch_gpu0_run_clsprec_nyc.sh scripts/watch_gpu1_run_getnext_nyc.sh
+
+git add retrieval_assets_clsprec/NYC/joined_poi_classification/train_joined_top100.parquet
+git add retrieval_assets_clsprec/NYC/joined_poi_classification/val_joined_top100.parquet
+git add retrieval_assets_clsprec/NYC/joined_poi_classification/test_joined_top100.parquet
+git add retrieval_assets_clsprec/SIN/joined_poi_classification/train_joined_top100.parquet
+git add retrieval_assets_clsprec/SIN/joined_poi_classification/val_joined_top100.parquet
+git add retrieval_assets_clsprec/SIN/joined_poi_classification/test_joined_top100.parquet
+git add retrieval_assets_getnext_clsprec/TKY/joined_poi_classification/train_joined_top100.parquet
+git add retrieval_assets_getnext_clsprec/TKY/joined_poi_classification/val_joined_top100.parquet
+git add retrieval_assets_getnext_clsprec/TKY/joined_poi_classification/test_joined_top100.parquet
+
+git add -f retrieval_assets_clsprec/NYC/double_llm/semantic_poi_ids.jsonl
+git add -f retrieval_assets_clsprec/SIN/double_llm/semantic_poi_ids.jsonl
+git add -f retrieval_assets_getnext_clsprec/TKY/double_llm/semantic_poi_ids.jsonl
 
 git status
 git commit -m "Document routed TeamLoRA experiment workflow"

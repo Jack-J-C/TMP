@@ -97,6 +97,7 @@ def train_best_model(
     log_path = out_dir / f"{run_name}_best_log.json"
 
     for epoch in range(h_params["epoch"]):
+        epoch_start = time.time()
         model.train()
         total_loss = 0.0
         for sample in train_set:
@@ -116,11 +117,25 @@ def train_best_model(
         avg_loss = total_loss / max(1, len(train_set))
         loss_by_epoch[str(epoch)] = avg_loss
         should_eval = ((epoch + 1) % max(1, eval_every) == 0) or (epoch + 1 == h_params["epoch"])
+        print(
+            json.dumps(
+                {
+                    "epoch": epoch,
+                    "avg_train_loss": avg_loss,
+                    "train_seconds": round(time.time() - epoch_start, 3),
+                    "will_eval_valid": should_eval,
+                },
+                ensure_ascii=False,
+            ),
+            flush=True,
+        )
         valid_metrics = {}
         score = None
         if should_eval:
+            eval_start = time.time()
             valid_metrics = evaluate_test(settings, main_mod, model, valid_set, device)
             score = float(valid_metrics[best_metric])
+            valid_metrics["eval_seconds"] = round(time.time() - eval_start, 3)
         print(
             json.dumps(
                 {
@@ -132,7 +147,8 @@ def train_best_model(
                     "evaluated_valid": should_eval,
                 },
                 ensure_ascii=False,
-            )
+            ),
+            flush=True,
         )
         if score is not None and score > best_score:
             best_score = score
