@@ -321,7 +321,7 @@ NCCL_P2P_DISABLE=1 \
 NCCL_IB_DISABLE=1 \
 nohup $PY src/poi_reranker/train_teamlora_reranker_raat.py \
   --config config/train_nyc_exp2_top500_rescored_semprofile_simuser_v2.yaml \
-  > logs/train_nyc_exp2_top500_rescored_v1.log 2>&1 &
+  > logs/train_nyc_exp2_top500_rescored_step800_eval600800_v1.log 2>&1 &
 ```
 
 配置文件中的主要训练参数：
@@ -333,7 +333,7 @@ train_negatives: 15
 hard_negatives: 12
 batch_groups: 1
 grad_accum: 8
-max_steps: 600
+max_steps: 800
 lr: 0.0002
 bf16: true
 gradient_checkpointing: true
@@ -341,10 +341,11 @@ attn_implementation: sdpa
 val_hit_only: true
 eval_candidate_limit: null
 eval_candidate_batch_size: 2
-eval_final_only: true
+eval_final_only: false
+eval_at_steps: [600, 800]
 ```
 
-训练阶段 val 口径是 `val_hit_only=true`，用于观察 Top100 已召回样本内的重排能力。
+训练阶段 val 口径是 `val_hit_only=true`，用于观察 Top100 已召回样本内的重排能力。当前配置只在 600 和 800 step 做两次命中集评估，`best` checkpoint 仍按验证 MRR 自动保存最优一次。
 
 ## 独立评估
 
@@ -358,7 +359,7 @@ CUDA_VISIBLE_DEVICES=0 \
 NCCL_P2P_DISABLE=1 \
 NCCL_IB_DISABLE=1 \
 $PY src/poi_reranker/evaluate_teamlora_reranker.py \
-  --model-dir models/poi-teamlora-reranker-nyc-exp2-top500rescored-routed-lora3-semprofile-simuser-l1440-priorres-raatmem-step600-v1 \
+  --model-dir models/poi-teamlora-reranker-nyc-exp2-top500rescored-routed-lora3-semprofile-simuser-l1440-priorres-raatmem-step800-eval600800-v1 \
   --checkpoint best \
   --val-hit-only \
   --eval-candidate-batch-size 2 \
@@ -371,7 +372,7 @@ $PY src/poi_reranker/evaluate_teamlora_reranker.py \
 ```bash
 cd /mnt/data/users/yyl/TMP
 PY=/mnt/data/users/yyl/miniconda3/envs/poi_data/bin/python
-MODEL=models/poi-teamlora-reranker-nyc-exp2-top500rescored-routed-lora3-semprofile-simuser-l1440-priorres-raatmem-step600-v1
+MODEL=models/poi-teamlora-reranker-nyc-exp2-top500rescored-routed-lora3-semprofile-simuser-l1440-priorres-raatmem-step800-eval600800-v1
 
 CUDA_VISIBLE_DEVICES=0 \
 NCCL_P2P_DISABLE=1 \

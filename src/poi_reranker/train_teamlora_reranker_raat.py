@@ -88,6 +88,11 @@ def parse_args() -> argparse.Namespace:
     p.add_argument("--rank-noise-prob", type=float, default=0.0)
     p.add_argument("--logging-steps", type=int, default=10)
     p.add_argument("--eval-steps", type=int, default=200)
+    p.add_argument(
+        "--eval-at-steps",
+        default=None,
+        help="Optional explicit eval steps, e.g. '600,800'. YAML may pass a list. When set, periodic eval_steps is ignored.",
+    )
     p.add_argument("--save-steps", type=int, default=200)
     p.add_argument("--seed", type=int, default=42)
     p.add_argument("--bf16", action=argparse.BooleanOptionalAction, default=False)
@@ -136,6 +141,19 @@ def coerce_path_defaults(parser: argparse.ArgumentParser, args: argparse.Namespa
             value = getattr(args, action.dest, None)
             if value is not None and not isinstance(value, Path):
                 setattr(args, action.dest, Path(value))
+
+
+def parse_step_list(value: Any) -> List[int]:
+    if value is None or value == "":
+        return []
+    if isinstance(value, int):
+        return [value]
+    if isinstance(value, str):
+        parts = re.split(r"[,\s]+", value.strip())
+        return [int(x) for x in parts if x]
+    if isinstance(value, Sequence):
+        return [int(x) for x in value]
+    raise TypeError(f"Unsupported eval_at_steps value: {value!r}")
 
 
 def read_jsonl(path: Path) -> Iterable[Dict[str, Any]]:
@@ -1046,6 +1064,10 @@ def main() -> None:
     total_steps = args.max_steps if args.max_steps > 0 else max(1, int(math.ceil(steps_per_epoch * args.epochs)))
     warmup_steps = int(total_steps * args.warmup_ratio)
     scheduler = get_cosine_schedule_with_warmup(optimizer, num_warmup_steps=warmup_steps, num_training_steps=total_steps)
+    explicit_eval_steps = sorted({step for step in parse_step_list(args.eval_at_steps) if 0 < step <= total_steps})
+    if explicit_eval_steps:
+        args.eval_at_steps = explicit_eval_steps
+        print(json.dumps({"eval_at_steps": explicit_eval_steps, "eval_mode": "explicit"}, ensure_ascii=False))
 
     metadata = vars(args).copy()
     metadata.update({"teamlora_variant": "routed", "target_modules": TARGET_MODULES, "data_summary": data_summary})
@@ -1127,9 +1149,12 @@ def main() -> None:
             if global_step % args.logging_steps == 0:
                 avg_loss = sum(running_loss[-args.logging_steps :]) / max(1, min(len(running_loss), args.logging_steps))
                 print(json.dumps({"step": global_step, "loss": avg_loss, "lr": scheduler.get_last_lr()[0]}, ensure_ascii=False))
-            should_eval = (global_step % args.eval_steps == 0 or global_step == total_steps) and (
-                not args.eval_final_only or global_step == total_steps
-            )
+            if explicit_eval_steps:
+                should_eval = global_step in explicit_eval_steps
+            else:
+                should_eval = (global_step % args.eval_steps == 0 or global_step == total_steps) and (
+                    not args.eval_final_only or global_step == total_steps
+                )
             if should_eval:
                 model.save_trainable(args.output_dir / "latest", metadata | {"step": global_step, "checkpoint_type": "latest_before_eval"})
                 metrics = evaluate(model, tokenizer, val_loader, args, device)
