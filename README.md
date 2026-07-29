@@ -78,6 +78,12 @@ models/bge-m3        # 仅重建 similar user profile 时需要；直接训练 p
 
 `models/` 默认不推送到 git。
 
+CLSPRec 三城与 GETNext-TKY 数据从原始 check-in 到 `dataset_clsprec` / `dataset_getnext_clsprec`、`retrieval_assets_*` 和训练 parquet 的预处理/split 规则，见：
+
+```text
+docs/clsprec_dataset_pipeline.md
+```
+
 ## 候选池重建策略
 
 当前 NYC experiment2 实际采用的是：

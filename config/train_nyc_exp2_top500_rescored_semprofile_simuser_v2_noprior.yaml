@@ -2,18 +2,18 @@ train_joined: retrieval_assets_clsprec/NYC/joined_poi_classification_exp2_top500
 val_joined: retrieval_assets_clsprec/NYC/joined_poi_classification_exp2_top500_rescored/val_joined_top100.parquet
 semantic_map: retrieval_assets_clsprec/NYC/double_llm/semantic_poi_ids.jsonl
 base_model: models/Llama-3.2-1B-Instruct
-output_dir: models/poi-teamlora-reranker-nyc-exp2-top500rescored-routed-lora3-semprofile-simuser-l1440-priorres-raatmem-step1000-eval1000-v1
+output_dir: models/poi-teamlora-reranker-nyc-exp2-top500rescored-routed-lora3-semprofile-simuser-l1440-noprior-raatmem-step800-v1
 
 top_k: 100
-max_length: 1440
+max_length: 1280
 input_template: semantic_profile_simuser_v1
 expert_mode: anonymous
 
-train_negatives: 15
-hard_negatives: 12
+train_negatives: 10
+hard_negatives: 8
 batch_groups: 1
 grad_accum: 8
-max_steps: 1000
+max_steps: 800
 lr: 0.0002
 weight_decay: 0.0
 warmup_ratio: 0.03
@@ -25,11 +25,11 @@ lora_dropout: 0.05
 scorer_dropout: 0.1
 graph_feature_dim: 32
 
-use_graph_prior: true
+use_graph_prior: false
 graph_prior_type: rank_log
 residual_alpha_init: 0.3
-residual_l2: 0.001
-residual_bound_mode: tanh
+residual_l2: 0.0
+residual_bound_mode: none
 residual_bound_value: 1.0
 
 raat_mode: target_mask_2view
@@ -38,9 +38,9 @@ val_hit_only: true
 eval_candidate_limit: null
 eval_candidate_batch_size: 2
 eval_final_only: false
-eval_steps: 1000
-eval_at_steps: [1000]
-save_steps: 1000
+eval_steps: 800
+eval_at_steps: [800]
+save_steps: 800
 logging_steps: 10
 
 bf16: true
