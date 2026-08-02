@@ -1,0 +1,86 @@
+train-joined: retrieval_assets_clsprec/NYC/joined_poi_classification_exp2_top500_rescored/train_joined_top100.parquet
+val-joined: retrieval_assets_clsprec/NYC/joined_poi_classification_exp2_top500_rescored/val_joined_top100.parquet
+test-joined: retrieval_assets_clsprec/NYC/joined_poi_classification_exp2_top500_rescored/test_joined_top100.parquet
+train-candidates: retrieval_assets_clsprec/NYC/double_llm/graphrag_semantic_edges_v2_top500_train_Candidates.jsonl
+val-candidates: retrieval_assets_clsprec/NYC/double_llm/graphrag_semantic_edges_v2_top500_val_Candidates.jsonl
+test-candidates: retrieval_assets_clsprec/NYC/double_llm/graphrag_semantic_edges_v2_top500_test_Candidates.jsonl
+train-teacher-candidates: retrieval_assets_clsprec/NYC/double_llm/experiment2_top500_best_rescored/train_learned_top100_candidates.jsonl
+val-teacher-candidates: retrieval_assets_clsprec/NYC/double_llm/experiment2_top500_best_rescored/val_learned_top100_candidates.jsonl
+test-teacher-candidates: retrieval_assets_clsprec/NYC/double_llm/experiment2_top500_best_rescored/test_learned_top100_candidates.jsonl
+semantic-map: retrieval_assets_clsprec/NYC/double_llm/semantic_poi_ids.jsonl
+base-model: models/bert-base-uncased
+output-dir: models/poi-bert-mobility-encoder-nyc-exp3-graphrag500-bert3lora-dcnv2-dinlite-teacher-l512-step800-eval200-v8
+
+pool-k: 500
+top-k: 500
+fixed-pool-prior: none
+selection-mode: original
+final-score-mode: dcn_only
+max-length: 512
+input-template: semantic_profile_simuser_mobility_v1
+structured-mobility-input: true
+enhanced-behavior-features: true
+max-trajectory-events: 24
+train-hit-only: true
+val-hit-only: false
+test-hit-only: false
+
+batch-groups: 1
+grad-accum: 4
+max-steps: 800
+lr: 0.0001
+encoder-lr: 0.00001
+weight-decay: 0.0
+warmup-ratio: 0.03
+
+lora-r: 16
+lora-alpha: 32
+lora-num: 3
+lora-dropout: 0.05
+lora-target-preset: bert
+unfreeze-last-n-layers: 2
+
+text-proj-dim: 256
+anchor-proj-dim: 256
+anchor-hidden-dim: 256
+relation-hidden-dim: 128
+relation-proj-dim: 128
+category-bucket-size: 256
+geo-bucket-size: 1024
+semantic-bucket-size: 4096
+alignment-mode: dcnv2
+alignment-dropout: 0.1
+candidate-token-attention: true
+din-history-attention: true
+
+pool-hidden-dim: 0
+pool-dropout: 0.0
+pool-alpha-init: 0.0
+fusion-alpha-init: 1.0
+pool-loss-weight: 0.0
+keep-margin: 0.1
+keep-loss-weight: 0.0
+final-loss-weight: 1.0
+
+train-negatives: 127
+hard-negatives: 96
+raat-mode: none
+raat-loss-weight: 0.0
+teacher-loss-weight: 0.3
+teacher-top-k: 32
+teacher-temperature: 2.0
+
+eval-candidate-batch-size: 500
+eval-steps: 200
+eval-at-steps: [200, 400, 600, 800]
+save-steps: 200
+logging-steps: 10
+eval-final-only: false
+
+bf16: true
+fp16: false
+gradient-checkpointing: true
+attn-implementation: sdpa
+device: cuda
+num-workers: 0
+seed: 42
