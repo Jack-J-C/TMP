@@ -227,6 +227,87 @@ experiment3 应该补：
 - 对 tail / mid / head 样本的专家行为分桶；
 - 对 `user_profile_insufficient=true` 样本的 expert 路由差异。
 
+### 4.6 主线 F：Anchor 细化与候选-轨迹关系建模
+
+当前 experiment3 的另一个瓶颈，是 candidate anchor 还太像压缩后的 prior，而不是“候选本体 + 用户相关性”的联合表示。
+
+因此建议把 anchor 扩成两层：
+
+#### 4.6.1 候选本体细化
+
+保留结构化，不回退到长文本。建议字段：
+
+- `rank_bin`
+- `rank_norm`
+- `score_log`
+- `score_bin`
+- `source_family_counts`
+- `source_diversity`
+- `category_id`
+- `geo_cell_id`
+- `semantic_id_bucket`
+- `source_presence_flags`
+
+目标不是把候选变复杂，而是避免 anchor 只有少量桶特征，导致模型只能拟合 learned prior 的影子。
+
+#### 4.6.2 source family 统计
+
+建议把 `sources` 从几个 bit 升级成更稳定的 family 统计：
+
+- transition family
+- geo family
+- history family
+- semantic family
+- mixed-family count
+- source entropy / diversity
+
+这样模型能区分“这个候选是靠什么被召回的”，而不是只看到一个粗糙的来源开关。
+
+#### 4.6.3 user-relative relation 特征
+
+这一层是最值得做的。候选本体之外，还要显式表达候选和用户轨迹的关系：
+
+- 与 last POI 是否同类
+- 与 last category 是否匹配
+- 与 last2 / last3 POI 的匹配情况
+- 与最近轨迹点的距离桶
+- 与 geo routine centroid 的距离桶
+- 是否命中长期 category affinity
+- 是否命中 revisit affinity
+- 是否命中 temporal routine
+- 是否和 similar-user profile 的偏好一致
+- 候选来源与用户最近行为信号是否一致
+
+这类特征能把“候选自己是什么”与“它和这个用户为什么相关”分开，通常比单纯加深对齐头更有效。
+
+### 4.7 主线 G：relation head 的推荐风格
+
+如果只在当前 experiment3 里选一种风格，我更推荐 **DCNv2 风格**，而不是先上 DIN。
+
+原因：
+
+- 当前输入主要是结构化 anchor + relation 特征，属于典型 tabular interaction 场景；
+- DCNv2 直接显式建模 bounded-degree feature crosses，和当前轻量对齐头最贴合；
+- 参数量和训练成本可控，和当前 fixed Top100 任务更一致；
+- 相比 AutoInt，它通常更稳，不那么容易在小样本有效监督上过拟合。
+
+AutoInt 可以作为备选，但更适合在 relation 特征已经比较完整之后再试。
+
+DIN 更适合这种情况：
+
+- 你把最近轨迹显式展开成序列；
+- 让候选作为 query 去做 candidate-conditioned history attention；
+- 需要真正学习“这个候选该看历史里的哪一段”。
+
+但在当前 experiment3 里，轨迹已经被 Llama 压成 mobility embedding，继续做 DIN 风格的序列注意力，改动会更大，也更依赖序列级输入重建。
+
+因此当前推荐顺序是：
+
+1. 先做 candidate 本体细化 + source family 统计；
+2. 再做 user-relative relation 特征；
+3. 对齐头先用 DCNv2 风格；
+4. 如果后续要把最近轨迹显式展开，再考虑 DIN 风格 attention。
+
 ## 5. experiment3 不建议做的事
 
 以下内容不建议作为 experiment3 主干：
@@ -242,11 +323,13 @@ experiment3 应该补：
 ## 6. experiment3 推荐实验顺序
 
 1. 匿名三专家轨迹编码基线。
-2. 加轻量对齐模块。
-3. 加 RAAT / hard negatives。
-4. 加输入模板清理。
-5. 做 expert 路由分析。
-6. 迁移到 SIN / TKY 做稳定性验证。
+2. 候选本体细化 + source family 统计。
+3. user-relative relation 特征。
+4. DCNv2 风格 relation head。
+5. 加 RAAT / hard negatives。
+6. 加输入模板清理。
+7. 做 expert 路由分析。
+8. 迁移到 SIN / TKY 做稳定性验证。
 
 ## 7. experiment3 预期结论
 
